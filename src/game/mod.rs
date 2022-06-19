@@ -19,9 +19,38 @@ impl Color {
     }
 }
 
+
+pub struct Renderable {
+    pub color: Color,
+    pub content: String,
+}
+
+#[derive(Clone, Copy)]
+pub struct Position {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl Position {
+    pub fn new(x: usize, y: usize) -> Self {
+        Self { x, y }
+    }
+
+    pub fn origin() -> Self {
+        Self::new(0, 0)
+    }
+}
+
+pub struct Character {
+    pub states: Vec<Renderable>,
+    pub state: usize,
+    pub position: Position,
+}
+
+
 pub struct Game {
-    pub symbol_map: Vec<Vec<char>>,
-    pub color_map: Vec<Vec<Color>>,
+    pub characters: Vec<Character>,
+    pub stopped: bool,
 
     width: usize,
     height: usize,
@@ -29,20 +58,21 @@ pub struct Game {
 
 impl Game {
     pub fn new(width: usize, height: usize) -> Self {
-        let mut symbol_map = vec![vec!['*'; width]; height];
-        let mut color_map = vec![vec![Color::black(); width]; height];
-
-        for i in 0..height {
-            for j in 0..width {
-                color_map[i][j] = Color::new(i as u8, j as u8, 127);
-            }
-        }
-
-        Self { symbol_map, color_map, width, height }
+        Self {
+            characters: vec![],
+            stopped: false,
+            width, height }
     }
 
-    pub fn resize(&mut self, width: usize, height: usize) {
-        self.symbol_map = vec![vec!['*'; width]; height];
-        self.color_map =  vec![vec![Color::black(); width]; height];
+    pub fn set_size(&mut self, width: usize, height: usize) {
+        self.width = width;
+        self.height = height;
+    }
+
+    pub fn process_key(&mut self, key: char, ctrl: bool) {
+        if ctrl && key == 'q' {
+            self.stopped = true;
+            return;
+        }
     }
 }
