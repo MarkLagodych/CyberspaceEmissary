@@ -1,0 +1,12 @@
+[package]
+name = "one_conjectural_story"
+description = "Game for Rusty Game Jam (June 2022)"
+version = "0.1.0"
+edition = "2021"
+authors = [
+    "Mark Lagodych <lgd.mrk@gmail.com>",
+    "Ivan Dereviankin <ukrustacean@gmail.com>"
+]
+
+[dependencies]
+termion = "^1.5.6"
