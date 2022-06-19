@@ -1,67 +1,48 @@
-#[derive(Clone, Copy)]
-pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-}
+mod utils;
+pub use utils::*;
 
-impl Color {
-    pub fn new(r: u8, g: u8, b: u8) -> Self {
-        Self { r, g, b }
-    }
-
-    pub fn black() -> Self {
-        Self::new(0, 0, 0)
-    }
-
-    pub fn white() -> Self {
-        Self::new(255, 255, 255)
-    }
-}
-
-
-pub struct Renderable {
-    pub color: Color,
-    pub content: String,
-}
-
-#[derive(Clone, Copy)]
-pub struct Position {
-    pub x: usize,
-    pub y: usize,
-}
-
-impl Position {
-    pub fn new(x: usize, y: usize) -> Self {
-        Self { x, y }
-    }
-
-    pub fn origin() -> Self {
-        Self::new(0, 0)
-    }
-}
-
-pub struct Character {
-    pub states: Vec<Renderable>,
-    pub state: usize,
-    pub position: Position,
-}
-
+use crate::special_key_codes::*;
 
 pub struct Game {
     pub characters: Vec<Character>,
     pub stopped: bool,
 
+    pub cursor_position: Position,
+
     width: usize,
     height: usize,
+
+    console: String,
 }
 
 impl Game {
     pub fn new(width: usize, height: usize) -> Self {
-        Self {
+        let mut new_self = Self {
             characters: vec![],
             stopped: false,
-            width, height }
+            
+            cursor_position: Position::new(0, height-1),
+            
+            width,
+            height,
+
+            console: "".into()
+        };
+
+        new_self.characters.push(
+            Character {
+                states: vec![
+                    Renderable {
+                        color: Color::white(),
+                        content: "".into()
+                    }
+                ],
+                state: 0,
+                position: Position::new(0, height-1)
+            }
+        );
+
+        new_self
     }
 
     pub fn set_size(&mut self, width: usize, height: usize) {
@@ -74,5 +55,26 @@ impl Game {
             self.stopped = true;
             return;
         }
+
+        match key {
+            '\n' => {
+                self.console.clear();
+                self.cursor_position.x = 0;
+            }
+
+            KEY_BACKSPACE => {
+                if (self.console.len() > 0) {
+                    self.console.pop();
+                    self.cursor_position.x -= 1;
+                }
+            }
+
+            _ => {
+                self.console.push(key);
+                self.cursor_position.x += 1;
+            }
+        }
+
+        self.characters[0].states[0].content = self.console.clone();
     }
 }

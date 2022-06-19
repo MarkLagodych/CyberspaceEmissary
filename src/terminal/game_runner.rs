@@ -1,7 +1,9 @@
 use crate::game::*;
+use crate::special_key_codes::*;
 
 use std::io::{self, Write};
 use std::{thread, time};
+
 
 use termion::input::TermRead;
 use termion::{cursor, color, terminal_size};
@@ -36,7 +38,6 @@ impl GameRunner {
         Self::clear(stdout);
         Self::goto(stdout, Position::origin());
         write!(stdout, "{}{}", color::Fg(color::Reset), color::Bg(color::Reset));
-        Self::show_cursor(stdout, true);
         Self::update(stdout);
     }
 
@@ -50,14 +51,6 @@ impl GameRunner {
             "{}",
             cursor::Goto(1 + pos.x as u16, 1 + pos.y as u16)
         );
-    }
-
-    fn show_cursor(stdout: &mut RawStdout, show: bool) {
-        if (show) {
-            write!(stdout, "{}", cursor::Show);
-        } else {
-            write!(stdout, "{}", cursor::Hide);
-        }
     }
 
     fn draw_character(stdout: &mut RawStdout, c: &Character) {
@@ -84,7 +77,7 @@ impl GameRunner {
         let _stdout_locked = _stdout.lock();
         let mut stdout = _stdout_locked.into_raw_mode().unwrap();
 
-        Self::show_cursor(&mut stdout, false);
+        let mut keys = termion::async_stdin().keys();
 
         self.game.characters.push(Character { 
             states: vec![
@@ -104,25 +97,26 @@ impl GameRunner {
 
             Self::clear(&mut stdout);
 
-            for character in &self.game.characters {
-                Self::draw_character(&mut stdout, character);
+            let key = keys.next();
+            if let Some(key) = key {
+                match key.unwrap() {
+                    Key::Char(c) => self.game.process_key(c, false),
+                    Key::Ctrl(c) => self.game.process_key(c, true),
+                    Key::Backspace => self.game.process_key(KEY_BACKSPACE, false),
+                    _ => {}
+                }
             }
-           
-            Self::goto(&mut stdout, Position::new(width-1, height-1));
-            Self::update(&mut stdout);
-
-
-            let key = io::stdin().keys().next().unwrap().unwrap();
-            match key {
-                Key::Char(c) => self.game.process_key(c, false),
-                Key::Ctrl(c) => self.game.process_key(c, true),
-                _ => {}
-            }
-            Self::update(&mut stdout);
 
             if self.game.stopped {
                 break;
             }
+
+            for character in &self.game.characters {
+                Self::draw_character(&mut stdout, character);
+            }
+           
+            Self::goto(&mut stdout, self.game.cursor_position);
+            Self::update(&mut stdout);
 
             thread::sleep(time::Duration::from_millis(16));
         }
