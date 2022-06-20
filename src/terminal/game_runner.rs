@@ -19,15 +19,14 @@ type RawStdout<'a> = RawTerminal<io::StdoutLock<'a>>;
 
 impl GameRunner {
     pub fn new() -> Self {
-        let (width, height) = Self::get_size();
         Self {
-            game: Game::new(width, height),
+            game: Game::new(Self::get_size()),
         }
     }
 
-    fn get_size() -> (usize, usize) {
+    fn get_size() -> Size {
         let size = terminal_size().unwrap();
-        (size.0 as usize, size.1 as usize)
+        Size::new(size.0.into(), size.1.into())
     }
 
     fn clear(stdout: &mut RawStdout) {
@@ -53,22 +52,26 @@ impl GameRunner {
         );
     }
 
-    fn draw_character(stdout: &mut RawStdout, c: &Character) {
-        let rend = &c.states[c.state];
-        
-        let mut pos = c.position;
-
-        for line in rend.content.split("\n") {
-            Self::goto(stdout, pos);
+    fn draw_character(&self, stdout: &mut RawStdout, ch: &Character) {
+        for rend in &ch.renderables {
+            let mut pos = ch.position + rend.offset;
             
-            write!(
-                stdout,
-                "{}{}",
-                color::Fg(color::Rgb(rend.color.r, rend.color.g, rend.color.b)),
-                line
-            );
+            if !rect_is_fully_inside(&self.game.size, &pos, &rend.size) {
+                continue;
+            }
 
-            pos.y += 1;
+            for line in rend.content.split("\n") {
+                Self::goto(stdout, pos);
+                
+                write!(
+                    stdout,
+                    "{}{}",
+                    color::Fg(color::Rgb(rend.color.r, rend.color.g, rend.color.b)),
+                    line
+                );
+
+                pos.y += 1;
+            }
         }
     }
 
@@ -79,21 +82,9 @@ impl GameRunner {
 
         let mut keys = termion::async_stdin().keys();
 
-        self.game.characters.push(Character { 
-            states: vec![
-                Renderable {
-                    color: Color::new(255, 200, 0),
-                    content: String::from("Waka\r\nWaka\r\n EE ")
-                }
-            ],
-            state: 0,
-            position: Position::new(5, 1)
-        });
-
         loop {
 
-            let (width, height) = Self::get_size();
-            self.game.set_size(width, height);
+            self.game.set_size(Self::get_size());
 
             Self::clear(&mut stdout);
 
@@ -103,6 +94,9 @@ impl GameRunner {
                     Key::Char(c) => self.game.process_key(c, false),
                     Key::Ctrl(c) => self.game.process_key(c, true),
                     Key::Backspace => self.game.process_key(KEY_BACKSPACE, false),
+                    Key::Left => self.game.process_key('[', false),
+                    Key::Right => self.game.process_key(']', false),
+                    Key::Up | Key::Down => self.game.process_key('\'', false),
                     _ => {}
                 }
             }
@@ -111,8 +105,20 @@ impl GameRunner {
                 break;
             }
 
-            for character in &self.game.characters {
-                Self::draw_character(&mut stdout, character);
+            if !self.game.min_size.fits_in(&self.game.size) {
+                Self::goto(&mut stdout, Position::new(0, 0));
+                print!("Minimum size: {}x{}", self.game.min_size.width, self.game.min_size.height);
+                Self::goto(&mut stdout, Position::new(0, 1));
+                print!("Current size: {}x{}", self.game.size.width, self.game.size.height);
+                Self::goto(&mut stdout, Position::new(0, 2));
+                print!("Resize your terminal, please");
+                Self::update(&mut stdout);
+            } else {
+                let room = &self.game.rooms[self.game.current_room];
+                for entity_id in &room.entities {
+                    let character = (&self.game.entities)[*entity_id].get_character();
+                    self.draw_character(&mut stdout, character);
+                }
             }
            
             Self::goto(&mut stdout, self.game.cursor_position);
