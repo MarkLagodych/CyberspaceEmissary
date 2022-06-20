@@ -41,6 +41,7 @@ impl GameRunner {
     }
 
     fn update(stdout: &mut RawStdout) {
+        // io::stdout().flush();
         stdout.flush().unwrap();
     }
 
@@ -50,6 +51,14 @@ impl GameRunner {
             "{}",
             cursor::Goto(1 + pos.x as u16, 1 + pos.y as u16)
         );
+    }
+
+    fn hide_cursor(stdout: &mut RawStdout) {
+        write!(stdout, "{}", cursor::Hide);
+    }
+
+    fn show_cursor(stdout: &mut RawStdout) {
+        write!(stdout, "{}", cursor::Show);
     }
 
     fn draw_character(&self, stdout: &mut RawStdout, ch: &Character) {
@@ -71,7 +80,9 @@ impl GameRunner {
                 );
 
                 pos.y += 1;
+                // Self::update(stdout);
             }
+
         }
     }
 
@@ -105,6 +116,8 @@ impl GameRunner {
                 break;
             }
 
+            Self::hide_cursor(&mut stdout);
+
             if !self.game.min_size.fits_in(&self.game.size) {
                 Self::goto(&mut stdout, Position::new(0, 0));
                 print!("Minimum size: {}x{}", self.game.min_size.width, self.game.min_size.height);
@@ -119,12 +132,15 @@ impl GameRunner {
                     let character = (&self.game.entities)[*entity_id].get_character();
                     self.draw_character(&mut stdout, character);
                 }
+                // Self::update(&mut stdout);
             }
            
+            Self::show_cursor(&mut stdout);
+
             Self::goto(&mut stdout, self.game.cursor_position);
             Self::update(&mut stdout);
 
-            thread::sleep(time::Duration::from_millis(16));
+            thread::sleep(time::Duration::from_millis(30));
         }
 
         Self::cleanup(&mut stdout);

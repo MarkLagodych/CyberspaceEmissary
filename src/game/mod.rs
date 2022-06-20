@@ -23,7 +23,7 @@ pub struct Game {
 impl Game {
     pub fn new(size: Size) -> Self {
         let mut new_self = Self {
-            rooms: vec![Room::new()],
+            rooms: vec![],
             current_room: 0,
             entities: vec![],
             stopped: false,
@@ -36,12 +36,13 @@ impl Game {
             system_entity: 0,
         };
 
-        let sysent = SystemEntity::new();
-
-        new_self.cursor_position = Position::new(0, size.height-1);
+        let mut sysent = SystemEntity::new();
+        sysent.set_size(size);
+        new_self.min_size = sysent.get_min_size();
+        new_self.cursor_position = sysent.get_cursor_pos();
         new_self.system_entity = new_self.new_entity(Box::new(sysent));
 
-        new_self.rooms[0].entities.push(new_self.system_entity);
+        new_self.new_room();
 
 
         new_self
@@ -54,7 +55,7 @@ impl Game {
     pub fn set_size(&mut self, size: Size) {
         self.size = size;
         self.get_system_entity_mut().set_size(size);
-        self.cursor_position.x = self.get_system_entity_mut().console_len() as i32;
+        self.cursor_position = self.get_system_entity_mut().get_cursor_pos();
     }
 
     pub fn process_key(&mut self, key: char, ctrl: bool) {
@@ -84,12 +85,15 @@ impl Game {
 
             }
 
+            '[' => sysent.move_hero(-1),
+            ']' => sysent.move_hero(1),
+
             _ => {
                 sysent.console_add_char(key);
             }
         }
 
-        self.cursor_position.x = sysent.console_len() as i32;
+        self.cursor_position = sysent.get_cursor_pos();
 
     }
 
@@ -100,5 +104,13 @@ impl Game {
 
     fn get_character(&self, entity_id: ID) -> &Character {
         self.entities[entity_id].get_character()
+    }
+
+    /// Returns: index for the new room
+    fn new_room(&mut self) -> usize {
+        self.rooms.push(Room::new());
+        let index = self.rooms.len() - 1;
+        self.rooms[index].entities.push(self.system_entity);
+        index
     }
 }

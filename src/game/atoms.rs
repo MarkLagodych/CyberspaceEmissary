@@ -89,8 +89,8 @@ impl Size {
 pub fn rect_is_fully_inside(view_size: &Size, rect_pos: &Position, rect_size: &Size) -> bool {
     if rect_pos.x < 0
     || rect_pos.y < 0
-    || rect_pos.x + rect_size.width >= view_size.width
-    || rect_pos.y + rect_size.height >= view_size.height
+    // || rect_pos.x + rect_size.width > view_size.width
+    // || rect_pos.y + rect_size.height > view_size.height
     {
         false
     }
