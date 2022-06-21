@@ -1,6 +1,6 @@
 use super::system_entity::SystemEntity;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -22,14 +22,14 @@ impl Color {
 }
 
 
-pub struct Renderable {
+pub struct Sprite {
     pub color: Color,
     pub content: String,
     pub offset: Position,
     pub size: Size,
 }
 
-impl Renderable {
+impl Sprite {
     pub fn new() -> Self {
         Self {
             color: Color::white(),
@@ -40,7 +40,7 @@ impl Renderable {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
@@ -53,6 +53,13 @@ impl Position {
 
     pub fn origin() -> Self {
         Self::new(0, 0)
+    }
+
+    pub fn is_in_view(&self, view_size: &Size) -> bool {
+        self.x >= 0
+        && self.y >= 0
+        && self.x < view_size.width
+        && self.y < view_size.height
     }
 }
 
@@ -68,7 +75,7 @@ impl ops::Add<Position> for Position {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Size {
     pub width: i32,
     pub height: i32,
@@ -84,39 +91,39 @@ impl Size {
     }
 }
 
-
-/// Checks whether rectangle is fully inside the view
-pub fn rect_is_fully_inside(view_size: &Size, rect_pos: &Position, rect_size: &Size) -> bool {
-    if rect_pos.x < 0
-    || rect_pos.y < 0
-    // || rect_pos.x + rect_size.width > view_size.width
-    // || rect_pos.y + rect_size.height > view_size.height
-    {
-        false
+impl PartialEq for Size {
+    fn eq(&self, other: &Self) -> bool {
+        self.width == other.width && self.height == other.height
     }
-    else
-    {
-        true
+
+    fn ne(&self, other: &Self) -> bool {
+        self.width != other.width || self.height != other.height
     }
 }
 
 
-pub struct Character {
-    pub renderables: Vec<Renderable>,
+/// Graphical Object
+pub struct Figure {
+    pub sprites: Vec<Sprite>,
     pub position: Position,
 }
 
-impl Character {
+impl Figure {
     pub fn new() -> Self {
-        Self { renderables: vec![], position: Position::origin() }
+        Self { sprites: vec![], position: Position::origin() }
     }
 }
 
 
 pub trait Entity {
-    fn get_character(&self) -> &Character;
+    fn get_figure(&self) -> &Figure;
 
     fn get_system_entity_mut(&mut self) -> Option<&mut SystemEntity> {
+        None
+    }
+
+    /// Returns: (destination room number, destination X coordinate)
+    fn teleport(&self) -> Option<(usize, i32)> {
         None
     }
 }
@@ -137,3 +144,38 @@ impl Room {
 }
 
 
+pub struct StaticEntity {
+    gobject: Figure,
+}
+
+impl StaticEntity {
+    pub fn new(content: String, color: Color, position: Position) -> Self {
+        let mut size = Size::new(0, 0);
+
+        for line in content.split('\n') {
+            size.height += 1;
+            size.width = size.width.max(line.len() as i32);
+        }
+
+        Self {
+            gobject: Figure {
+                position,
+                sprites: vec![
+                    Sprite {
+                        color,
+                        content,
+                        offset: Position::origin(),
+                        size
+                    }
+                ],
+            }
+        }
+    }    
+}
+
+
+impl Entity for StaticEntity {
+    fn get_figure(&self) -> &Figure {
+        &self.gobject
+    }
+}

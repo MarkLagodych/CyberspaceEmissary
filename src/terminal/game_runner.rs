@@ -1,113 +1,138 @@
 use crate::game::*;
 use crate::special_key_codes::*;
 
-use std::io::{self, Write};
-use std::{thread, time};
+use std :: {
+    io::{self, Write},
+    thread,
+    time::Duration
+};
 
 
-use termion::input::TermRead;
-use termion::{cursor, color, terminal_size};
-use termion::raw::{IntoRawMode, RawTerminal};
-use termion::input::Keys;
-use termion::event::Key;
+use crossterm :: {
+    terminal,
+    cursor,
+    QueueableCommand,
+    queue,
+    execute,
+    event,
+    style,
+};
+
+
 
 pub struct GameRunner {
     game: Game,
 }
 
-type RawStdout<'a> = RawTerminal<io::StdoutLock<'a>>;
-
 impl GameRunner {
     pub fn new() -> Self {
         Self {
-            game: Game::new(Self::get_size()),
+            game: Game::new(Self::static_get_size()),
         }
     }
 
-    fn get_size() -> Size {
-        let size = terminal_size().unwrap();
+    fn static_get_size() -> Size {
+        let size = terminal::size().unwrap();
         Size::new(size.0.into(), size.1.into())
     }
 
-    fn clear(stdout: &mut RawStdout) {
-        write!(stdout, "{}", termion::clear::All);
+    fn get_size(&self) -> Size {
+        Self::static_get_size()
     }
 
-    fn cleanup(stdout: &mut RawStdout) {
-        Self::clear(stdout);
-        Self::goto(stdout, Position::origin());
-        write!(stdout, "{}{}", color::Fg(color::Reset), color::Bg(color::Reset));
-        Self::update(stdout);
+    fn clear(&self) {
+        // queue!(io::stdout(), cursor::MoveTo(0, 0));
+        queue!(io::stdout(), terminal::Clear(terminal::ClearType::Purge));
     }
 
-    fn update(stdout: &mut RawStdout) {
-        // io::stdout().flush();
-        stdout.flush().unwrap();
-    }
-
-    fn goto(stdout: &mut RawStdout, pos: Position) {
-        write!(
-            stdout,
-            "{}",
-            cursor::Goto(1 + pos.x as u16, 1 + pos.y as u16)
+    fn update_cursor(&self) {
+        queue!(
+            io::stdout(),
+            cursor::MoveTo(
+                self.game.cursor_position.x as u16,
+                self.game.cursor_position.y as u16
+            )
         );
     }
 
-    fn hide_cursor(stdout: &mut RawStdout) {
-        write!(stdout, "{}", cursor::Hide);
-    }
+    fn draw(&self) {
+        let mut x = 0usize;
+        let mut y = 0usize;
 
-    fn show_cursor(stdout: &mut RawStdout) {
-        write!(stdout, "{}", cursor::Show);
-    }
+        queue!(io::stdout(), cursor::Hide);
+        
+        for line in &self.game.symbol_buffer {
+            queue!(io::stdout(), cursor::MoveTo(0, y as u16));
 
-    fn draw_character(&self, stdout: &mut RawStdout, ch: &Character) {
-        for rend in &ch.renderables {
-            let mut pos = ch.position + rend.offset;
-            
-            if !rect_is_fully_inside(&self.game.size, &pos, &rend.size) {
-                continue;
+            x = 0;
+
+            for symbol in line {
+
+                if *symbol != ' ' {
+                    let color = &self.game.color_buffer[y][x];
+
+                    queue!(
+                        io::stdout(),
+                        style::SetForegroundColor(
+                            style::Color::Rgb { r: color.r, g: color.g, b: color.b }
+                        )
+                    );
+                }
+
+                write!(io::stdout(), "{}", symbol);
+
+                x += 1;
             }
 
-            for line in rend.content.split("\n") {
-                Self::goto(stdout, pos);
-                
-                write!(
-                    stdout,
-                    "{}{}",
-                    color::Fg(color::Rgb(rend.color.r, rend.color.g, rend.color.b)),
-                    line
-                );
-
-                pos.y += 1;
-                // Self::update(stdout);
-            }
-
+            y += 1;
         }
+
+        queue!(io::stdout(), cursor::Show);
+
     }
 
     pub fn run(&mut self) {
-        let _stdout = io::stdout();
-        let _stdout_locked = _stdout.lock();
-        let mut stdout = _stdout_locked.into_raw_mode().unwrap();
-
-        let mut keys = termion::async_stdin().keys();
+        terminal::enable_raw_mode();
 
         loop {
 
-            self.game.set_size(Self::get_size());
+            if event::poll(Duration::from_millis(100)).unwrap() {
+                match event::read().unwrap() {
+                    event::Event::Key(key_event) => {
+                        match key_event.code {
+                            event::KeyCode::Char(ch) => {
+                                if key_event.modifiers.contains(event::KeyModifiers::CONTROL) {
+                                    self.game.process_key(ch, true);
+                                } else {
+                                    self.game.process_key(ch, false);
+                                }
+                            }
 
-            Self::clear(&mut stdout);
+                            event::KeyCode::Left => {
+                                self.game.process_key('[', false);
+                            }
 
-            let key = keys.next();
-            if let Some(key) = key {
-                match key.unwrap() {
-                    Key::Char(c) => self.game.process_key(c, false),
-                    Key::Ctrl(c) => self.game.process_key(c, true),
-                    Key::Backspace => self.game.process_key(KEY_BACKSPACE, false),
-                    Key::Left => self.game.process_key('[', false),
-                    Key::Right => self.game.process_key(']', false),
-                    Key::Up | Key::Down => self.game.process_key('\'', false),
+                            event::KeyCode::Right => {
+                                self.game.process_key(']', false);
+                            }
+
+                            event::KeyCode::Up
+                            | event::KeyCode::Down => {
+                                self.game.process_key('\'', false);
+                            }
+
+                            event::KeyCode::Enter => {
+                                self.game.process_key(KEY_ENTER, false);
+                            }
+
+                            event::KeyCode::Backspace => {
+                                self.game.process_key(KEY_BACKSPACE, false);
+                            }
+
+                            _ => {}
+                        }
+                    }
+
                     _ => {}
                 }
             }
@@ -116,34 +141,18 @@ impl GameRunner {
                 break;
             }
 
-            Self::hide_cursor(&mut stdout);
-
-            if !self.game.min_size.fits_in(&self.game.size) {
-                Self::goto(&mut stdout, Position::new(0, 0));
-                print!("Minimum size: {}x{}", self.game.min_size.width, self.game.min_size.height);
-                Self::goto(&mut stdout, Position::new(0, 1));
-                print!("Current size: {}x{}", self.game.size.width, self.game.size.height);
-                Self::goto(&mut stdout, Position::new(0, 2));
-                print!("Resize your terminal, please");
-                Self::update(&mut stdout);
-            } else {
-                let room = &self.game.rooms[self.game.current_room];
-                for entity_id in &room.entities {
-                    let character = (&self.game.entities)[*entity_id].get_character();
-                    self.draw_character(&mut stdout, character);
-                }
-                // Self::update(&mut stdout);
-            }
-           
-            Self::show_cursor(&mut stdout);
-
-            Self::goto(&mut stdout, self.game.cursor_position);
-            Self::update(&mut stdout);
-
-            thread::sleep(time::Duration::from_millis(30));
+            self.game.set_size(self.get_size());
+            self.game.render();
+            self.clear();
+            self.draw();
+            self.update_cursor();
+            io::stdout().flush();
         }
 
-        Self::cleanup(&mut stdout);
+        self.clear();
+        io::stdout().flush();
 
+        terminal::disable_raw_mode();
+        io::stdout().flush();
     }
 }

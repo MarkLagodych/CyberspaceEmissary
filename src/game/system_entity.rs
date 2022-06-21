@@ -1,4 +1,5 @@
 use super::*;
+use super::ascii_art::*;
 
 const SYSENT_REND_CONSOLE: usize = 0;
 const SYSENT_REND_ROOM_TOP: usize = 1;
@@ -7,23 +8,13 @@ const SYSENT_REND_ROOM_RIGHT: usize = 3;
 const SYSENT_REND_ROOM_BOTTOM: usize = 4;
 const SYSENT_REND_HERO: usize = 5;
 
-const HERO: &'static str =
-r" 0
-/#\
-/ \";
 
-const ROOM_WIDTH: i32 = 90;
-const ROOM_HEIGHT: i32 = 25;
 
-const ROOM_BORDER_HORZ: &'static str = 
-"##########################################################################################";
-const ROOM_BORDER_VERT: &'static str = 
-"#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n#\n";
 
 pub struct SystemEntity {
     view_size: Size,
     console: String,
-    character: Character,
+    character: Figure,
 }
 
 impl SystemEntity {
@@ -31,38 +22,38 @@ impl SystemEntity {
         Self {
             view_size: Size::new(1, 1),
             console: "".into(),
-            character: Character {
-                renderables: vec![
+            character: Figure {
+                sprites: vec![
                     // Console
-                    Renderable::new(),
+                    Sprite::new(),
                     // Room
-                    Renderable {
+                    Sprite {
                         color: Color::new(0, 95, 127),
                         content: ROOM_BORDER_HORZ.into(),
                         offset: Position::origin(),
                         size: Size::new(ROOM_BORDER_HORZ.len() as i32, 1)
                     },
                     
-                    Renderable {
+                    Sprite {
                         color: Color::new(0, 95, 127),
                         content: ROOM_BORDER_VERT.into(),
                         offset: Position::new(0, 1),
                         size: Size::new(1, ROOM_BORDER_VERT.len() as i32)
                     },
-                    Renderable {
+                    Sprite {
                         color: Color::new(0, 95, 127),
                         content: ROOM_BORDER_VERT.into(),
                         offset: Position::new(ROOM_WIDTH-1, 1),
                         size: Size::new(1, ROOM_BORDER_VERT.len() as i32)
                     },
-                    Renderable {
+                    Sprite {
                         color: Color::new(0, 95, 127),
                         content: ROOM_BORDER_HORZ.into(),
                         offset: Position::new(0, ROOM_HEIGHT - 1),
                         size: Size::new(ROOM_BORDER_HORZ.len() as i32, 1)
                     },
                     // Hero
-                    Renderable {
+                    Sprite {
                         color: Color::new(255, 0, 255),
                         content: HERO.into(),
                         offset: Position::new(1, ROOM_HEIGHT-1-3),
@@ -75,7 +66,7 @@ impl SystemEntity {
     }
 
     pub fn get_cursor_pos(&self) -> Position {
-        self.character.renderables[SYSENT_REND_CONSOLE].offset
+        self.character.sprites[SYSENT_REND_CONSOLE].offset
         + Position::new(self.console.len() as i32, 0)
     }
 
@@ -86,11 +77,11 @@ impl SystemEntity {
     pub fn set_size(&mut self, size: Size) {
         self.view_size = size;
 
-        self.character.renderables[SYSENT_REND_CONSOLE].offset.y = size.height - 1;
+        self.character.sprites[SYSENT_REND_CONSOLE].offset.y = size.height - 1;
     }
 
     fn console_update(&mut self) {
-        self.character.renderables[SYSENT_REND_CONSOLE].content = self.console.clone();
+        self.character.sprites[SYSENT_REND_CONSOLE].content = self.console.clone();
     }
 
     pub fn console_add_char(&mut self, ch: char) {
@@ -117,7 +108,7 @@ impl SystemEntity {
     }
 
     pub fn move_hero(&mut self, dir: i32) {
-        let rend = &mut self.character.renderables[SYSENT_REND_HERO];
+        let rend = &mut self.character.sprites[SYSENT_REND_HERO];
         if (rend.offset.x + dir) < 1
         || (rend.offset.x + dir + rend.size.width) > ROOM_WIDTH-1
         {
@@ -130,7 +121,7 @@ impl SystemEntity {
 }
 
 impl Entity for SystemEntity {
-    fn get_character(&self) -> &Character {
+    fn get_figure(&self) -> &Figure {
         &self.character
     }
 

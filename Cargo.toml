@@ -10,4 +10,4 @@ authors = [
 license = "GPL-3.0-or-later"
 
 [dependencies]
-termion = "^1.5.6"
+crossterm = "^0.23.0"
