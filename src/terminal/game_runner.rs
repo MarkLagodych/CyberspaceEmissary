@@ -21,13 +21,15 @@ use crossterm :: {
 
 
 pub struct GameRunner {
-    game: Game,
+    game: Box<Game>,
 }
 
 impl GameRunner {
     pub fn new() -> Self {
         Self {
-            game: Game::new(Self::static_get_size()),
+            game: Box::new(
+                Game::new(Self::static_get_size())
+            ),
         }
     }
 
@@ -41,8 +43,20 @@ impl GameRunner {
     }
 
     fn clear(&self) {
-        // queue!(io::stdout(), cursor::MoveTo(0, 0));
         queue!(io::stdout(), terminal::Clear(terminal::ClearType::Purge));
+    }
+
+    fn cleanup(&self) {
+        execute!(
+            io::stdout(),
+            cursor::MoveTo(0, 0),
+            terminal::Clear(terminal::ClearType::All),
+            terminal::Clear(terminal::ClearType::Purge)
+        );
+    }
+
+    fn flush(&self) {
+        io::stdout().flush();
     }
 
     fn update_cursor(&self) {
@@ -96,7 +110,7 @@ impl GameRunner {
 
         loop {
 
-            if event::poll(Duration::from_millis(100)).unwrap() {
+            if event::poll(Duration::from_millis(30)).unwrap() {
                 match event::read().unwrap() {
                     event::Event::Key(key_event) => {
                         match key_event.code {
@@ -146,13 +160,13 @@ impl GameRunner {
             self.clear();
             self.draw();
             self.update_cursor();
-            io::stdout().flush();
+            self.flush();
         }
 
-        self.clear();
-        io::stdout().flush();
+        self.cleanup();
+        self.flush();
 
         terminal::disable_raw_mode();
-        io::stdout().flush();
+        // self.flush();
     }
 }

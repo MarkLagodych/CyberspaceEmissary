@@ -1,14 +1,18 @@
+pub mod ascii_art;
+
 mod atoms;
+mod entities;
+mod game_objects;
 
 pub use atoms::*;
 
-mod system_entity;
-use system_entity::*;
-
-pub mod ascii_art;
+use entities::*;
 use ascii_art::*;
+use game_objects::*;
 
 use crate::special_key_codes::*;
+
+
 
 pub struct Game {
     pub size: Size,
@@ -17,14 +21,24 @@ pub struct Game {
     pub stopped: bool,
     pub cursor_position: Position,
     
-    pub rooms: Vec<Room>,
-    pub current_room: usize,
-    pub entities: Vec<Box<dyn Entity>>,
+    rooms: Vec<Room>,
+    current_room: RoomID,
+    entities: Vec<Box<dyn Entity>>,
 
     pub symbol_buffer: Vec<Vec<char>>,
     pub color_buffer: Vec<Vec<Color>>,
 
-    system_entity: ID,
+    view_position: Position,
+
+    console: SpellConsole,
+    console_id: EntityID,
+
+    debug_id: EntityID,
+
+    tutorial_id: EntityID,
+    floor_id: EntityID,
+
+    hero_id: EntityID,
 }
 
 impl Game {
@@ -38,29 +52,29 @@ impl Game {
             cursor_position: Position::origin(),
             
             size: Size::new(0, 0),
-            min_size: Size::new(80, 25),
+            min_size: Size::new(WORLD_MIN_WIDTH, WORLD_HEIGHT),
 
             symbol_buffer: vec![],
             color_buffer: vec![],
 
-            system_entity: 0,
+            view_position: Position::origin(),
+
+            debug_id: 0,
+
+            console: SpellConsole::new(),
+            console_id: 0,
+
+            tutorial_id: 0,
+            floor_id: 0,
+
+            hero_id: 0,
         };
 
+        new_self.construct_entities();
+        new_self.construct_rooms();
         new_self.resize_buffers(size);
 
-        let mut sysent = SystemEntity::new();
-        sysent.set_size(size);
-        new_self.min_size = sysent.get_min_size();
-        new_self.cursor_position = sysent.get_cursor_pos();
-        new_self.system_entity = new_self.new_entity(Box::new(sysent));
-
-        new_self.construct_rooms();
-
         new_self
-    }
-
-    fn get_system_entity_mut(&mut self) -> &mut SystemEntity {
-        self.entities[self.system_entity].get_system_entity_mut().unwrap()
     }
 
     pub fn set_size(&mut self, size: Size) {
@@ -69,8 +83,15 @@ impl Game {
         }
 
         self.size = size;
-        self.get_system_entity_mut().set_size(size);
-        self.cursor_position = self.get_system_entity_mut().get_cursor_pos();
+        self.manage_console();
+    }
+
+    fn manage_console(&mut self) {
+        let fig = self.entities[self.console_id].get_figure_mut();
+        fig.sprites[0].content = self.console.get_spell();
+        fig.position = Position::new(0, self.size.height-1);
+        
+        self.cursor_position = fig.position + Position::new(self.console.get_len() as i32, 0);
     }
 
     fn resize_buffers(&mut self, size: Size) {
@@ -78,9 +99,7 @@ impl Game {
         self.color_buffer = vec![vec![Color::white(); size.width as usize]; size.height as usize];
     }
 
-    pub fn process_key(&mut self, key: char, ctrl: bool) {
-        let sysent = self.get_system_entity_mut();
-        
+    pub fn process_key(&mut self, key: char, ctrl: bool) {        
         if ctrl {
             match key {
                 'q' => {
@@ -94,53 +113,79 @@ impl Game {
 
         match key {
             KEY_ENTER => {
-                sysent.console_finish();
+                self.console.finish_spell();
             }
 
             KEY_BACKSPACE => {
-                sysent.console_backspace();
+                self.console.backspace();
             }
 
             '1'..='9' => {
 
             }
 
-            '[' => sysent.move_hero(-1),
-            ']' => sysent.move_hero(1),
+            '[' | ']' => {
+
+                let delta = if key == ']' {1} else {-1};
+
+                let hero_pos_abs = self.entities[self.hero_id].get_figure().position;
+                let hero_pos = hero_pos_abs.relative_to(self.view_position);
+
+                let hero_size = self.entities[self.hero_id].get_size();
+
+                let right = hero_pos.x + delta + hero_size.width;
+                let right_abs = hero_pos_abs.x + delta + hero_size.width;
+                if right >= self.size.width - WORLD_RIGHT_MARGIN {
+                    if right_abs < self.rooms[self.current_room].size.width - WORLD_RIGHT_MARGIN {
+                        self.view_position += Position::new(1, 0);
+                    }
+                }
+
+                if right_abs < self.rooms[self.current_room].size.width - WORLD_RIGHT_MARGIN {
+                    Hero::move_entity(&mut self.entities[self.hero_id], delta);
+                }
+
+                if delta < 0 && hero_pos.x + delta >= 0 {
+                    Hero::move_entity(&mut self.entities[self.hero_id], delta);
+                }
+            }
+
             '\'' => {}
 
             'a'..='z' | 'A'..='Z' | ' ' => {
-                sysent.console_add_char(key);
+                self.console.add_char(key);
             }
 
             _ => {}
         }
 
-        self.cursor_position = sysent.get_cursor_pos();
+        self.manage_console();
 
     }
 
-    fn new_entity(&mut self, ent: Box<dyn Entity>) -> ID {
+    fn new_entity(&mut self, ent: Box<dyn Entity>) -> EntityID {
         self.entities.push(ent);
         self.entities.len() - 1
     }
 
-    fn get_character(&self, entity_id: ID) -> &Figure {
-        self.entities[entity_id].get_figure()
-    }
-
     /// Returns: index for the new room
-    fn new_room(&mut self) -> usize {
-        self.rooms.push(Room::new());
+    fn new_room(&mut self, room_size: Size) -> RoomID {
+        self.rooms.push(Room::new(room_size));
         let index = self.rooms.len() - 1;
-        self.rooms[index].entities.push(self.system_entity);
         index
     }
 
-    fn construct_rooms(&mut self) {
-        let start_room = self.new_room();
+    fn construct_entities(&mut self) {
 
-        let tutorial_id = self.new_entity(
+        self.debug_id = self.new_entity(Box::new(StaticEntity::new(
+            DEBUG.into(), Color::cyan(), Position::new(WORLD_MIN_WIDTH*2, WORLD_HEIGHT-2)
+        )));
+
+        self.console_id = self.new_entity(Box::new(StaticEntity::new(
+            "".into(), Color::white(), Position::origin()
+        )));
+
+        self.tutorial_id = self.new_entity(
             Box::new(StaticEntity::new(
                 TUTORIAL.into(),
                 Color::new(200, 70, 0),
@@ -148,7 +193,35 @@ impl Game {
             ))
         );
 
-        self.rooms[start_room].entities.push(tutorial_id);
+        self.floor_id = self.new_entity(Box::new(
+            StaticEntity::new(
+                String::from_iter(FLOOR),
+                Color::white(),
+                Position::new(0, WORLD_HEIGHT-1)
+            )
+        ));
+
+        self.hero_id = self.new_entity(Hero::new_entity());
+    }
+
+    fn construct_rooms(&mut self) {
+        let start_room_id = self.new_room(Size::new(WORLD_MIN_WIDTH*2, WORLD_HEIGHT));
+
+        self.rooms[start_room_id].entities.push(self.debug_id);
+        self.rooms[start_room_id].entities.push(self.tutorial_id);
+        self.rooms[start_room_id].entities.push(self.console_id);
+        self.rooms[start_room_id].entities.push(self.floor_id);
+        self.rooms[start_room_id].entities.push(self.hero_id);
+
+        self.current_room = start_room_id;
+    }
+
+    fn is_not_in_view_yet(&self, pos: Position) -> bool {
+        pos.x < 0 || pos.y < 0
+    }
+
+    fn is_not_in_view_already(&self, pos: Position) -> bool {
+        pos.x >= self.size.width || pos.y >= self.size.height
     }
 
     pub fn render(&mut self) {
@@ -163,27 +236,37 @@ impl Game {
             let figure = &self.entities[*entity_id].get_figure();
             
             for sprite in &figure.sprites {
-                let mut pos = figure.position + sprite.offset;
+
+                if !sprite.active {
+                    continue;
+                }
+
+                let mut pos = (figure.position + sprite.offset).relative_to(self.view_position);
                 let initial_x = pos.x;
                 
                 for line in sprite.content.split('\n') {
                     pos.x = initial_x;
 
                     for symbol in line.chars() {
+                        pos.x += 1;
 
-                        if !pos.is_in_view(&self.size) {
+                        if self.is_not_in_view_yet(pos) {
+                            continue; // Discard only this character
+                        }
+
+                        if self.is_not_in_view_already(pos) {
                             break; // Discard the rest of the line
+                        }
+
+                        if symbol == ' ' {
+                            continue; // Invisible
                         }
 
                         let row = pos.y as usize;
                         let col = pos.x as usize;
 
-                        if symbol != ' ' {
-                            self.symbol_buffer[row][col] = symbol;
-                            self.color_buffer[row][col] = sprite.color.clone();
-                        }
-
-                        pos.x += 1;
+                        self.symbol_buffer[row][col] = symbol;
+                        self.color_buffer[row][col] = sprite.color.clone();
                     }
 
                     pos.y += 1;
