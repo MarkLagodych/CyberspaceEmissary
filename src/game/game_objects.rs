@@ -44,14 +44,16 @@ pub const HERO_STATE_NORMAL: usize = 0;
 
 impl Hero {
     pub fn new_entity() -> Box<dyn Entity> {
-        let mut ent = AnimatableEntity::new(Position::origin());
-
         let hero_size = Sprite::get_content_size(HERO);
+        
+        let mut ent = Box::new(
+            AnimatableEntity::new(Position::new(0, WORLD_HEIGHT-1 - hero_size.height))
+        );
 
         let staying_id = ent.add_sprite(Sprite {
             color: Color::magenta(),
             content: HERO.into(),
-            offset: Position::new(0, WORLD_HEIGHT-1 - hero_size.height), 
+            offset: Position::origin(), 
             size: hero_size,
             active: true
         });
@@ -60,7 +62,7 @@ impl Hero {
 
         ent.set_state(HERO_STATE_NORMAL);
         
-        Box::new(ent)
+        ent
     }
 
     pub fn move_entity(ent: &mut Box<dyn Entity>, dir: i32) {
@@ -71,5 +73,45 @@ impl Hero {
         // }
         
         ent.animate();
+    }
+}
+
+
+pub const SWORD_STATE_NORMAL: usize = 0;
+
+pub struct Sword {
+
+}
+
+impl Sword {
+    pub fn new_entity() -> Box<dyn Entity> {
+        let size = Size::new(3, 3);
+        let mut ent = Box::new(
+            AnimatableEntity::new(Position::new(0, WORLD_HEIGHT-1 - size.height - 2))
+        );
+
+        let common = Sprite {
+            color: Color::yellow(),
+            content: "".into(),
+            offset: Position::origin(),
+            size,
+            active: true
+        };
+
+        let mut sprite_ids = vec![
+            ent.add_sprite(Sprite { content: SWORD_1.into(), ..common }),
+            ent.add_sprite(Sprite { content: SWORD_2.into(), ..common }),
+            ent.add_sprite(Sprite { content: SWORD_3.into(), ..common }),
+            ent.add_sprite(Sprite { content: SWORD_4.into(), ..common }),
+            ent.add_sprite(Sprite { content: SWORD_5.into(), ..common }),
+        ];
+
+        for id in &sprite_ids {
+            ent.add_animation_point(SWORD_STATE_NORMAL, vec![*id]);
+        }
+
+        ent.set_state(SWORD_STATE_NORMAL);
+
+        ent
     }
 }

@@ -161,6 +161,8 @@ impl GameRunner {
             self.draw();
             self.update_cursor();
             self.flush();
+
+            // thread::sleep(Duration::from_millis(64));
         }
 
         self.cleanup();

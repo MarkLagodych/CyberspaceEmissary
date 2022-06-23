@@ -39,6 +39,8 @@ pub struct Game {
     floor_id: EntityID,
 
     hero_id: EntityID,
+
+    sword_id: EntityID,
 }
 
 impl Game {
@@ -68,6 +70,7 @@ impl Game {
             floor_id: 0,
 
             hero_id: 0,
+            sword_id: 0,
         };
 
         new_self.construct_entities();
@@ -89,9 +92,11 @@ impl Game {
     fn manage_console(&mut self) {
         let fig = self.entities[self.console_id].get_figure_mut();
         fig.sprites[0].content = self.console.get_spell();
-        fig.position = Position::new(0, self.size.height-1);
+        fig.position = Position::new(self.view_position.x, self.size.height-1);
         
-        self.cursor_position = fig.position + Position::new(self.console.get_len() as i32, 0);
+        self.cursor_position =
+            fig.position.relative_to(self.view_position)
+            + Position::new(self.console.get_len() as i32, 0);
     }
 
     fn resize_buffers(&mut self, size: Size) {
@@ -99,7 +104,9 @@ impl Game {
         self.color_buffer = vec![vec![Color::white(); size.width as usize]; size.height as usize];
     }
 
-    pub fn process_key(&mut self, key: char, ctrl: bool) {        
+    pub fn process_key(&mut self, key: char, ctrl: bool) {       
+        self.entities[self.sword_id].animate();
+ 
         if ctrl {
             match key {
                 'q' => {
@@ -132,21 +139,15 @@ impl Game {
                 let hero_pos = hero_pos_abs.relative_to(self.view_position);
 
                 let hero_size = self.entities[self.hero_id].get_size();
+                let room_size = self.rooms[self.current_room].size;
 
-                let right = hero_pos.x + delta + hero_size.width;
-                let right_abs = hero_pos_abs.x + delta + hero_size.width;
-                if right >= self.size.width - WORLD_RIGHT_MARGIN {
-                    if right_abs < self.rooms[self.current_room].size.width - WORLD_RIGHT_MARGIN {
-                        self.view_position += Position::new(1, 0);
-                    }
-                }
-
-                if right_abs < self.rooms[self.current_room].size.width - WORLD_RIGHT_MARGIN {
+                if hero_pos.x + delta >= 0
+                && hero_pos_abs.x + hero_size.width + delta < room_size.width - WORLD_RIGHT_MARGIN {
                     Hero::move_entity(&mut self.entities[self.hero_id], delta);
                 }
 
-                if delta < 0 && hero_pos.x + delta >= 0 {
-                    Hero::move_entity(&mut self.entities[self.hero_id], delta);
+                if hero_pos.x + delta + hero_size.width > self.size.width - WORLD_RIGHT_MARGIN {
+                    self.view_position += Position::new(1, 0);
                 }
             }
 
@@ -202,6 +203,9 @@ impl Game {
         ));
 
         self.hero_id = self.new_entity(Hero::new_entity());
+
+        self.sword_id = self.new_entity(Sword::new_entity());
+
     }
 
     fn construct_rooms(&mut self) {
@@ -212,6 +216,7 @@ impl Game {
         self.rooms[start_room_id].entities.push(self.console_id);
         self.rooms[start_room_id].entities.push(self.floor_id);
         self.rooms[start_room_id].entities.push(self.hero_id);
+        self.rooms[start_room_id].entities.push(self.sword_id);
 
         self.current_room = start_room_id;
     }
@@ -242,13 +247,14 @@ impl Game {
                 }
 
                 let mut pos = (figure.position + sprite.offset).relative_to(self.view_position);
-                let initial_x = pos.x;
+                let xmin = pos.x;
                 
                 for line in sprite.content.split('\n') {
-                    pos.x = initial_x;
+                    let xmax = xmin + line.len() as i32;
+                    let mut x_iter = xmin..xmax;
 
                     for symbol in line.chars() {
-                        pos.x += 1;
+                        pos.x = x_iter.next().unwrap();
 
                         if self.is_not_in_view_yet(pos) {
                             continue; // Discard only this character
