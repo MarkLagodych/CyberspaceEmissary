@@ -1,3 +1,5 @@
+// Art by Black Sheep
+
 pub const WORLD_HEIGHT: i32 = 25;
 pub const WORLD_MIN_WIDTH: i32 = 80;
 pub const WORLD_RIGHT_MARGIN: i32 = 10;
@@ -9,7 +11,7 @@ pub const DEBUG: STR = "?";
 
 
 pub const HERO: STR =
-r" o
+r" 0
 /#\
 / \";
 

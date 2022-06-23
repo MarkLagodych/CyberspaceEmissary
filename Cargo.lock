@@ -46,6 +46,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cyberspace_emissary"
+version = "0.1.0"
+dependencies = [
+ "crossterm",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,13 +87,6 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys",
-]
-
-[[package]]
-name = "one_conjectural_story"
-version = "0.1.0"
-dependencies = [
- "crossterm",
 ]
 
 [[package]]

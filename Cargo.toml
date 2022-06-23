@@ -1,11 +1,11 @@
 [package]
-name = "one_conjectural_story"
+name = "cyberspace_emissary"
 description = "Game for Rusty Game Jam (June 2022)"
 version = "0.1.0"
 edition = "2021"
 authors = [
     "Mark Lagodych <lgd.mrk@gmail.com>",
-    "Black Sheep"
+    "Penny James aka Black Sheep"
 ]
 license = "GPL-3.0-or-later"
 
