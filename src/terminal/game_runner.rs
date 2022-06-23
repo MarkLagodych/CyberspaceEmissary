@@ -146,9 +146,12 @@ impl GameRunner {
                                 self.game.process_key(']', false);
                             }
 
-                            event::KeyCode::Up
-                            | event::KeyCode::Down => {
-                                self.game.process_key('\'', false);
+                            event::KeyCode::Up => {
+                                self.game.process_key('/', false);
+                            }
+
+                            event::KeyCode::Down => {
+                                self.game.process_key('.', false);
                             }
 
                             event::KeyCode::Enter => {

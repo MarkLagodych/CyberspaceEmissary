@@ -57,6 +57,7 @@ pub struct Hero {
 }
 
 pub const HERO_STATE_NORMAL: usize = 0;
+pub const HERO_STATE_CROUCHING: usize = 1;
 
 impl Hero {
     pub fn new_entity() -> Box<dyn Entity> {
@@ -66,7 +67,7 @@ impl Hero {
             AnimatableEntity::new(Position::new(0, WORLD_HEIGHT-1 - hero_size.height))
         );
 
-        let staying_id = ent.add_sprite(Sprite {
+        let staying = ent.add_sprite(Sprite {
             color: Color::magenta(),
             content: HERO.into(),
             offset: Position::origin(), 
@@ -74,21 +75,43 @@ impl Hero {
             active: true
         });
 
-        ent.add_animation_point(HERO_STATE_NORMAL, vec![staying_id], 1);
+        let crouching_1 = ent.add_sprite(Sprite {
+            color: Color::magenta(),
+            content: HERO_CROUCHING_1.into(),
+            offset: Position::origin(), 
+            size: hero_size,
+            active: true
+        });
+
+        let crouching_2 = ent.add_sprite(Sprite {
+            color: Color::magenta(),
+            content: HERO_CROUCHING_2.into(),
+            offset: Position::origin(), 
+            size: hero_size,
+            active: true
+        });
+
+        ent.add_animation_point(HERO_STATE_NORMAL, vec![staying], ANIMATE_FOREVER);
+        ent.add_animation_point(HERO_STATE_CROUCHING, vec![crouching_1], 4);
+        ent.add_animation_point(HERO_STATE_CROUCHING, vec![crouching_2], ANIMATE_FOREVER);
 
         ent.set_state(HERO_STATE_NORMAL);
         
         ent
     }
 
-    pub fn move_entity(ent: &mut Box<dyn Entity>, dir: i32) {
-        ent.get_figure_mut().position += Position::new(dir, 0);
+    pub fn move_entity(_self: &mut Box<dyn Entity>, dir: i32) {
+        _self.get_figure_mut().position += Position::new(dir, 0);
+    }
 
-        // if ent.get_state() != HERO_STATE_MOVING_RIGHT {
-        //     ent.set_state(HERO_STATE_MOVING_RIGHT);
-        // }
-        
-        ent.animate();
+    pub fn jump_entity(_self: &mut Box<dyn Entity>) {
+        if _self.get_state() == HERO_STATE_CROUCHING {
+            _self.set_state(HERO_STATE_NORMAL);
+        }
+    }
+
+    pub fn crouch_entity(_self: &mut Box<dyn Entity>) {
+        _self.set_state(HERO_STATE_CROUCHING);
     }
 }
 

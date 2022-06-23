@@ -32,7 +32,6 @@ use crate::special_key_codes::*;
 
 pub struct Game {
     pub size: Size,
-    pub min_size: Size,
     
     pub stopped: bool,
     pub cursor_position: Position,
@@ -70,7 +69,6 @@ impl Game {
             cursor_position: Position::origin(),
             
             size: Size::new(0, 0),
-            min_size: Size::new(WORLD_MIN_WIDTH, WORLD_HEIGHT),
 
             symbol_buffer: vec![],
             color_buffer: vec![],
@@ -121,8 +119,6 @@ impl Game {
     }
 
     pub fn process_key(&mut self, key: char, ctrl: bool) {       
-        self.entities[self.sword_id].animate();
- 
         if ctrl {
             match key {
                 'q' => {
@@ -167,7 +163,13 @@ impl Game {
                 }
             }
 
-            '\'' => {}
+            '/' => {
+                Hero::jump_entity(&mut self.entities[self.hero_id]);
+            }
+
+            '.' => {
+                Hero::crouch_entity(&mut self.entities[self.hero_id]);
+            }
 
             'a'..='z' | 'A'..='Z' | ' ' => {
                 self.console.add_char(key);
@@ -247,6 +249,8 @@ impl Game {
 
     pub fn render(&mut self) {
 
+        self.tick();
+
         for row in &mut self.symbol_buffer {
             for symbol in row {
                 *symbol = ' ';
@@ -294,5 +298,11 @@ impl Game {
             }
         }
 
+    }
+
+    fn tick(&mut self) {
+        for ent in &mut self.entities {
+            ent.animate();
+        }
     }
 }

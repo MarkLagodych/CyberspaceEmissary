@@ -70,6 +70,8 @@ impl AnimationPoint {
     }
 }
 
+pub const ANIMATE_FOREVER: u32 = 0;
+
 
 pub struct AnimatableEntity {
     pub figure: Figure,
@@ -106,7 +108,8 @@ impl AnimatableEntity {
     }
 
     /// Arguments:
-    /// duration - number of animate() calls that the given point should be retained
+    /// duration - number of animate() calls that the given point should be retained.
+    /// If duration is ANIMATE_FOREVER (0), indicates that it is the final animation point.
     pub fn add_animation_point(&mut self, state_id: StateID, sprite_ids: Vec<SpriteID>, duration: u32) {
         if !self.animations.contains_key(&state_id) {
             self.animations.insert(state_id, vec![]);
@@ -117,12 +120,6 @@ impl AnimatableEntity {
             .push(
                 AnimationPoint::new(duration, sprite_ids)
             );
-    }
-
-    pub fn set_state(&mut self, state_id: StateID) {
-        self.current_state = state_id;
-        self.current_animation_point = 0;
-        self.set_current_animation_point_active(true);
     }
 
     pub fn get_state(&mut self) -> StateID {
@@ -141,28 +138,45 @@ impl AnimatableEntity {
         }
     }
 
-    pub fn animate(&mut self) {
-        if self.animations.len() == 0 || self.figure.sprites.len() == 0 {
-            return;
-        }
+    fn get_current_animation_point_duration(&self) -> u32 {
+        self.animations
+            [&self.current_state]
+            [self.current_animation_point]
+            .duration
+    }
 
-        if (self.animation_call_counter > 0) {
-            self.animation_call_counter -= 1;
-            return;
-        }
-
-        self.set_current_animation_point_active(false);
-
+    fn next_animation_point(&mut self) {
         self.current_animation_point += 1;
         if self.current_animation_point >= self.animations[&self.current_state].len() {
             self.current_animation_point = 0;
         }
+    }
 
-        self.animation_call_counter = 
-            self.animations
-            [&self.current_state]
-            [self.current_animation_point]
-            .duration;
+    pub fn animate(&mut self, new_state: Option<StateID>) {
+        if self.animations.len() == 0 || self.figure.sprites.len() == 0 {
+            return;
+        }
+
+        if (new_state == None && self.animation_call_counter > 0) {
+            self.animation_call_counter -= 1;
+            return;
+        }
+
+        let duration = self.get_current_animation_point_duration();
+        if new_state == None && duration == ANIMATE_FOREVER {
+            return; // Stop animating
+        }
+        
+        self.set_current_animation_point_active(false);
+
+        if new_state == None {
+            self.next_animation_point();
+        } else if new_state.unwrap() != self.current_state {
+            self.current_state = new_state.unwrap();
+            self.current_animation_point = 0;
+        }
+
+        self.animation_call_counter = self.get_current_animation_point_duration();
 
         self.set_current_animation_point_active(true);
     }
@@ -179,7 +193,7 @@ impl Entity for AnimatableEntity {
     }
 
     fn set_state(&mut self, state_id: StateID) {
-        self.set_state(state_id);
+        self.animate(Some(state_id));
     }
 
     fn get_state(&mut self) -> StateID {
@@ -187,11 +201,11 @@ impl Entity for AnimatableEntity {
     }
 
     fn animate(&mut self) {
-        self.animate();
+        self.animate(None);
     }
 
+    /// HACK We get only the size of the first (0th) sprite in current state ;)
     fn get_size(&self) -> Size {
-        // HACK We get only the size of the first (0th) sprite in current state ;)
         self.figure.sprites[
             self.animations[&self.current_state][self.current_animation_point].enabled_sprites[0]
         ].size
