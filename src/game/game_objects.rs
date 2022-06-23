@@ -58,7 +58,7 @@ impl Hero {
             active: true
         });
 
-        ent.add_animation_point(HERO_STATE_NORMAL, vec![staying_id]);
+        ent.add_animation_point(HERO_STATE_NORMAL, vec![staying_id], 1);
 
         ent.set_state(HERO_STATE_NORMAL);
         
@@ -107,7 +107,7 @@ impl Sword {
         ];
 
         for id in &sprite_ids {
-            ent.add_animation_point(SWORD_STATE_NORMAL, vec![*id]);
+            ent.add_animation_point(SWORD_STATE_NORMAL, vec![*id], 2);
         }
 
         ent.set_state(SWORD_STATE_NORMAL);

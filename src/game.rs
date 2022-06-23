@@ -247,14 +247,12 @@ impl Game {
                 }
 
                 let mut pos = (figure.position + sprite.offset).relative_to(self.view_position);
-                let xmin = pos.x;
+                let initial_x = pos.x;
                 
                 for line in sprite.content.split('\n') {
-                    let xmax = xmin + line.len() as i32;
-                    let mut x_iter = xmin..xmax;
 
-                    for symbol in line.chars() {
-                        pos.x = x_iter.next().unwrap();
+                    for (symbol, x) in line.chars().zip(initial_x .. initial_x + line.len() as i32) {
+                        pos.x = x;
 
                         if self.is_not_in_view_yet(pos) {
                             continue; // Discard only this character

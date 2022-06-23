@@ -43,6 +43,17 @@ impl Entity for StaticEntity {
 }
 
 
+struct AnimationPoint {
+    pub duration: u32,
+    pub enabled_sprites: Vec<SpriteID>
+}
+
+impl AnimationPoint {
+    pub fn new(duration: u32, sprite_ids: Vec<SpriteID>) -> Self {
+        Self { duration, enabled_sprites: sprite_ids }
+    }
+}
+
 
 pub struct AnimatableEntity {
     pub figure: Figure,
@@ -51,9 +62,11 @@ pub struct AnimatableEntity {
     current_state: StateID,
     
     /// E.g. Running 1 / Running 2 / Running 3
-    current_animation: usize,
+    current_animation_point: usize,
 
-    animations: HashMap<StateID, Vec<Vec<SpriteID>>>,
+    animations: HashMap<StateID, Vec<AnimationPoint>>,
+
+    animation_call_counter: u32,
 }
 
 impl AnimatableEntity {
@@ -64,8 +77,9 @@ impl AnimatableEntity {
                 position,
             },
             current_state: 0,
-            current_animation: 0,
-            animations: HashMap::new()
+            current_animation_point: 0,
+            animations: HashMap::new(),
+            animation_call_counter: 0,
         } 
     }
 
@@ -75,52 +89,66 @@ impl AnimatableEntity {
         self.figure.sprites.len() - 1
     }
 
-    pub fn add_animation_point(&mut self, state_id: StateID, sprite_ids: Vec<SpriteID>) {
+    /// Arguments:
+    /// duration - number of animate() calls that the given point should be retained
+    pub fn add_animation_point(&mut self, state_id: StateID, sprite_ids: Vec<SpriteID>, duration: u32) {
         if !self.animations.contains_key(&state_id) {
             self.animations.insert(state_id, vec![]);
         }
-        self.animations.get_mut(&state_id).unwrap().push(sprite_ids);
+        self.animations
+            .get_mut(&state_id)
+            .unwrap()
+            .push(
+                AnimationPoint::new(duration, sprite_ids)
+            );
     }
 
     pub fn set_state(&mut self, state_id: StateID) {
         self.current_state = state_id;
-        self.current_animation = 0;
-        self.set_current_animation_active(true);
+        self.current_animation_point = 0;
+        self.set_current_animation_point_active(true);
     }
 
     pub fn get_state(&mut self) -> StateID {
         self.current_state
     }
 
-    fn set_current_animation_active(&mut self, active: bool) {
-        let mut sprite_ids =
-            &mut self.animations
+    fn set_current_animation_point_active(&mut self, active: bool) {
+        let animation_point =
+            &self.animations
             .get_mut(&self.current_state)
             .unwrap()
-            [self.current_animation];
+            [self.current_animation_point];
         
-        for sprite_id in sprite_ids {
+        for sprite_id in &animation_point.enabled_sprites {
             self.figure.sprites[*sprite_id].active = active;
         }
     }
 
     pub fn animate(&mut self) {
-        if self.animations.len() == 0 {
+        if self.animations.len() == 0 || self.figure.sprites.len() == 0 {
             return;
         }
 
-        if self.figure.sprites.len() == 0 {
+        if (self.animation_call_counter > 0) {
+            self.animation_call_counter -= 1;
             return;
         }
 
-        self.set_current_animation_active(false);
+        self.set_current_animation_point_active(false);
 
-        self.current_animation += 1;
-        if self.current_animation >= self.animations[&self.current_state].len() {
-            self.current_animation = 0;
+        self.current_animation_point += 1;
+        if self.current_animation_point >= self.animations[&self.current_state].len() {
+            self.current_animation_point = 0;
         }
 
-        self.set_current_animation_active(true);
+        self.animation_call_counter = 
+            self.animations
+            [&self.current_state]
+            [self.current_animation_point]
+            .duration;
+
+        self.set_current_animation_point_active(true);
     }
 }
 
@@ -149,7 +177,7 @@ impl Entity for AnimatableEntity {
     fn get_size(&self) -> Size {
         // HACK We get only the size of the first (0th) sprite in current state ;)
         self.figure.sprites[
-            self.animations[&self.current_state][self.current_animation][0]
+            self.animations[&self.current_state][self.current_animation_point].enabled_sprites[0]
         ].size
     }
 }
