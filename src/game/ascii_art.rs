@@ -34,8 +34,8 @@ pub const TUTORIAL: STR = "\
 | Quit: Ctrl + Q                          |
 * Move left: LEFT ARROW or [              *
 | Move right: RIGHT ARROW or ]            |
-| Crouch: DOWN ARROW or .                 |
-* Jump or Stop crouching: TOP ARROW or /  *
+* Crouch: DOWN ARROW or .                 *
+| Jump or Stop crouching: TOP ARROW or /  |
 * Cast a spell: any letters + ENTER       *
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 ";

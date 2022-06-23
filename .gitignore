@@ -1,3 +1,10 @@
 /target
 .vscode
 .vscode/*
+*.ts
+web/wasm/.gitignore
+web/wasm/README.md
+web/wasm/package.json
+!web/wasm/wasm.js
+!web/wasm/wasm_bg.wasm
+.junk

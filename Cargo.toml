@@ -9,5 +9,34 @@ authors = [
 ]
 license = "GPL-3.0-or-later"
 
+[[bin]]
+name = "cybersem"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
 [dependencies]
-crossterm = "^0.23.0"
+crossterm = {version="^0.23.0", optional=true}
+
+js-sys = {version="^0.3.57", optional=true}
+wasm-bindgen = {version="^0.2.80", optional=true}
+
+[dependencies.web-sys]
+version = "^0.3.4"
+features = [
+  'console',
+  'Window',
+  'Document',
+  'Element',
+  'HtmlCanvasElement',
+  'CanvasRenderingContext2d',
+  'TextMetrics'
+]
+
+[features]
+default = ["wasm_backend"]
+
+terminal_backend = ["crossterm"]
+wasm_backend = ["js-sys", "wasm-bindgen"]

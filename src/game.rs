@@ -68,7 +68,7 @@ impl Game {
             
             cursor_position: Position::origin(),
             
-            size: Size::new(0, 0),
+            size: size,
 
             symbol_buffer: vec![],
             color_buffer: vec![],
