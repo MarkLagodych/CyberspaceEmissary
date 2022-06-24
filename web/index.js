@@ -35,14 +35,12 @@ window.onload = ()=>{
 
     window.onkeydown = (key_event)=>{
         pressed_keys.add(key_event.code);
-        console.log(pressed_keys);
     };
 
     window.onkeyup = (key_event)=>{
         if (pressed_keys.has(key_event.code)) {
             pressed_keys.delete(key_event.code);
         }
-        console.log(pressed_keys);
     };
 };
 

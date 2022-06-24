@@ -2,9 +2,10 @@
 
 use super::Position;
 
-pub const WORLD_HEIGHT: i32 = 25;
+pub const WORLD_HEIGHT: i32 = 30;
 pub const WORLD_MIN_WIDTH: i32 = 80;
 pub const WORLD_RIGHT_MARGIN: i32 = 10;
+pub const Y_BOTTOM: i32 = WORLD_HEIGHT - 2;
 
 
 type STR = &'static str;
@@ -28,6 +29,16 @@ r"
 /#\
 ";
 
+pub const HERO_JUMPING_RIGHT: STR =
+r" 0
+/#‾
+/ \";
+
+pub const HERO_JUMPING_LEFT: STR = 
+r" 0
+‾#\
+/ \";
+
 
 #[cfg(feature = "terminal_backend")]
 pub const TUTORIAL: STR = "\
@@ -43,11 +54,11 @@ pub const TUTORIAL: STR = "\
 
 #[cfg(feature = "wasm_backend")]
 pub const TUTORIAL: STR = "\
-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-| Movement: WASD or ARROWS                |
-* Fight with your sword: E                *
-| Cast a spell: SPACE + letters + ENTER   |
-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+╔═════════════════════════════════════════╗
+║ Move: WASD or ARROWS                    ║
+║ Fight with your sword: V                ║
+║ Cast a spell: SPACE + letters + ENTER   ║
+╚═════════════════════════════════════════╝
 ";
 
 
@@ -67,3 +78,7 @@ pub const SWORD_4: STR = "\
 ■■";
 pub const SWORD_5: STR = "\
 ▙";
+
+
+pub const SPIKE_UP: STR = "▲";
+pub const SPIKE_DOWN: STR = "▼";

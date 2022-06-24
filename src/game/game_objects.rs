@@ -52,15 +52,23 @@ impl SpellConsole {
 }
 
 
-pub struct Hero {
+pub struct HeroController {
+    pub jump_counter: f64,
+    pub direction_right: bool,
     pub health: u32,
 }
 
 pub const HERO_STATE_NORMAL: usize = 0;
 pub const HERO_STATE_CROUCHING: usize = 1;
+pub const HERO_STATE_JUMPING_RIGHT: usize = 2;
+pub const HERO_STATE_JUMPING_LEFT: usize = 3;
 
-impl Hero {
-    pub fn new_entity() -> Box<dyn Entity> {
+impl HeroController {
+    pub fn new() -> Self {
+        Self { jump_counter: 0.0, health: 10, direction_right: true }
+    }
+
+    pub fn new_entity(&self) -> Box<dyn Entity> {
         let hero_size = Sprite::get_content_size(HERO);
         
         let mut ent = Box::new(
@@ -91,26 +99,60 @@ impl Hero {
             active: true
         });
 
+        let jumping_left = ent.add_sprite(Sprite {
+            color: Color::magenta(),
+            content: HERO_JUMPING_LEFT.into(),
+            offset: Position::origin(), 
+            size: hero_size,
+            active: true
+        });
+
+        let jumping_right = ent.add_sprite(Sprite {
+            color: Color::magenta(),
+            content: HERO_JUMPING_RIGHT.into(),
+            offset: Position::origin(), 
+            size: hero_size,
+            active: true
+        });
+
         ent.add_animation_point(HERO_STATE_NORMAL, vec![staying], ANIMATE_FOREVER);
+        
         ent.add_animation_point(HERO_STATE_CROUCHING, vec![crouching_1], 4);
         ent.add_animation_point(HERO_STATE_CROUCHING, vec![crouching_2], ANIMATE_FOREVER);
+
+        ent.add_animation_point(HERO_STATE_JUMPING_LEFT, vec![jumping_left], ANIMATE_FOREVER);
+        ent.add_animation_point(HERO_STATE_JUMPING_RIGHT, vec![jumping_right], ANIMATE_FOREVER);
 
         ent.set_state(HERO_STATE_NORMAL);
         
         ent
     }
 
-    pub fn move_entity(_self: &mut Box<dyn Entity>, dir: i32) {
-        _self.get_figure_mut().position += Position::new(dir, 0);
-    }
+    pub fn move_entity(&mut self, _self: &mut Box<dyn Entity>, dir: i32) {
+        self.direction_right = dir > 0;
 
-    pub fn jump_entity(_self: &mut Box<dyn Entity>) {
-        if _self.get_state() == HERO_STATE_CROUCHING {
-            _self.set_state(HERO_STATE_NORMAL);
+        if vec![HERO_STATE_JUMPING_LEFT, HERO_STATE_JUMPING_RIGHT].contains(&_self.get_state()) {
+            if self.direction_right {
+                _self.set_state(HERO_STATE_JUMPING_RIGHT);
+            } else {
+                _self.set_state(HERO_STATE_JUMPING_LEFT);
+            }
         }
     }
 
-    pub fn crouch_entity(_self: &mut Box<dyn Entity>) {
+    pub fn jump_entity(&self, _self: &mut Box<dyn Entity>) {
+        if _self.get_state() == HERO_STATE_CROUCHING {
+            _self.set_state(HERO_STATE_NORMAL);
+        } else {
+            if self.direction_right {
+                _self.set_state(HERO_STATE_JUMPING_RIGHT);
+            } else {
+                _self.set_state(HERO_STATE_JUMPING_LEFT);
+            }
+        }
+    }
+
+    pub fn crouch_entity(&self, _self: &mut Box<dyn Entity>) {
         _self.set_state(HERO_STATE_CROUCHING);
     }
 }
@@ -118,15 +160,15 @@ impl Hero {
 
 pub const SWORD_STATE_NORMAL: usize = 0;
 
-pub struct Sword {
+pub struct SwordController {
 
 }
 
-impl Sword {
+impl SwordController {
     pub fn new_entity() -> Box<dyn Entity> {
         let size = Size::new(3, 3);
         let mut ent = Box::new(
-            AnimatableEntity::new(Position::new(0, WORLD_HEIGHT-1 - size.height - 2))
+            AnimatableEntity::new(Position::new(0, Y_BOTTOM - size.height))
         );
 
         ent.figure.visible = false;

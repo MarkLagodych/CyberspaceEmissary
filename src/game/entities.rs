@@ -216,7 +216,7 @@ impl Entity for AnimatableEntity {
 
 
 
-struct HostileStaticEntity {
+pub struct HostileStaticEntity {
     pub figure: Figure,
 }
 

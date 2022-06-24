@@ -25,6 +25,7 @@ pub use atoms::*;
 use entities::*;
 use ascii_art::*;
 use game_objects::*;
+use web_sys::console;
 
 use crate::special_key_codes::*;
 
@@ -55,8 +56,11 @@ pub struct Game {
     floor_id: EntityID,
 
     hero_id: EntityID,
+    hero_controller: HeroController,
 
     sword_id: EntityID,
+
+    spike_ids: Vec<EntityID>,
 }
 
 impl Game {
@@ -86,7 +90,10 @@ impl Game {
             floor_id: 0,
 
             hero_id: 0,
+            hero_controller: HeroController::new(),
             sword_id: 0,
+
+            spike_ids: vec![]
         };
 
         new_self.construct_entities();
@@ -176,7 +183,16 @@ impl Game {
 
                 if hero_pos.x + delta >= 0
                 && hero_pos_abs.x + hero_size.width + delta < room_size.width - WORLD_RIGHT_MARGIN {
-                    Hero::move_entity(&mut self.entities[self.hero_id], delta);
+                    self.entities[self.hero_id].get_figure_mut().position.x += delta;
+                    self.entities[self.sword_id].get_figure_mut().position.x += delta;
+                    
+
+                    if self.collides(self.hero_id) {
+                        self.entities[self.hero_id].get_figure_mut().position.x -= delta;
+                        self.entities[self.sword_id].get_figure_mut().position.x -= delta;
+                    } else {
+                        self.hero_controller.move_entity(&mut self.entities[self.hero_id], delta);
+                    }
                 }
 
                 if hero_pos.x + delta + hero_size.width > self.size.width - WORLD_RIGHT_MARGIN {
@@ -185,14 +201,14 @@ impl Game {
             }
 
             'w' => {
-                Hero::jump_entity(&mut self.entities[self.hero_id]);
+                self.hero_controller.jump_entity(&mut self.entities[self.hero_id]);
             }
 
             's' => {
-                Hero::crouch_entity(&mut self.entities[self.hero_id]);
+                self.hero_controller.crouch_entity(&mut self.entities[self.hero_id]);
             }
 
-            'e' => {
+            'v' => {
                 let mut fig = self.entities[self.sword_id].get_figure_mut();
                 fig.visible = true;
             }
@@ -218,7 +234,7 @@ impl Game {
     fn construct_entities(&mut self) {
 
         self.debug_id = self.new_entity(Box::new(StaticEntity::new(
-            DEBUG.into(), Color::cyan(), Position::new(WORLD_MIN_WIDTH*2, WORLD_HEIGHT-2)
+            DEBUG.into(), Color::cyan(), Position::new(WORLD_MIN_WIDTH*2, Y_BOTTOM)
         )));
 
         self.console_id = self.new_entity(Box::new(StaticEntity::new(
@@ -237,13 +253,19 @@ impl Game {
             StaticEntity::new(
                 String::from_iter(FLOOR),
                 Color::white(),
-                Position::new(0, WORLD_HEIGHT-1)
+                Position::new(0, Y_BOTTOM+1)
             )
         ));
 
-        self.hero_id = self.new_entity(Hero::new_entity());
+        self.hero_id = self.new_entity(self.hero_controller.new_entity());
 
-        self.sword_id = self.new_entity(Sword::new_entity());
+        self.sword_id = self.new_entity(SwordController::new_entity());
+
+        self.spike_ids = vec![
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_UP.into(), Position::new(20, Y_BOTTOM), Color::red()
+            )))
+        ];
 
     }
 
@@ -256,6 +278,7 @@ impl Game {
         self.rooms[start_room_id].entities.push(self.floor_id);
         self.rooms[start_room_id].entities.push(self.hero_id);
         self.rooms[start_room_id].entities.push(self.sword_id);
+        self.rooms[start_room_id].entities.push(self.spike_ids[0]);
 
         self.current_room = start_room_id;
     }
@@ -344,4 +367,18 @@ impl Game {
         let mut fig = self.entities[self.sword_id].get_figure_mut();
         fig.visible = false;
     }
+
+    fn collides(&self, entity_id: EntityID) -> bool {
+        for ent_id in &self.rooms[self.current_room].entities {
+            if *ent_id != entity_id {
+                if !self.entities[*ent_id].get_figure().visible { continue; }
+                if collides(self.entities[entity_id].get_figure(), self.entities[*ent_id].get_figure()) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
 }

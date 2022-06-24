@@ -224,3 +224,40 @@ pub type SpriteID = usize;
 
 /// Index in an array
 pub type StateID = usize;
+
+
+fn is_point_in_rect(point: &Position, rect_pos: &Position, rect_size: &Size) -> bool {
+    point.x >= rect_pos.x
+    && point.y >= rect_pos.y
+    && point.x < rect_pos.x + rect_size.width
+    && point.y < rect_pos.y + rect_size.height
+}
+
+pub fn collides(fig1: &Figure, fig2: &Figure) -> bool {
+    for sprite1 in &fig1.sprites {
+        let sprite1_pos = fig1.position + sprite1.offset;
+        
+        for sprite2 in &fig2.sprites {
+            let sprite2_pos = fig2.position + sprite2.offset;
+            let x2 = sprite2_pos.x;
+            let y2 = sprite2_pos.y;
+            let w2 = sprite2.size.width;
+            let h2 = sprite2.size.height;
+
+            let points = vec![
+                Position::new(x2,      y2),
+                Position::new(x2,      y2 + h2),
+                Position::new(x2 + w2, y2),
+                Position::new(x2 + w2, y2 + h2),
+            ];
+
+            for p in &points {
+                if is_point_in_rect(p, &sprite1_pos, &sprite1.size) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
