@@ -28,7 +28,7 @@ use web_sys::console;
 pub struct GameRunner {
     ctx: web_sys::CanvasRenderingContext2d,
     canvas_size: Size,
-    game: Game,
+    game: Box<Game>,
 }
 
 
@@ -53,7 +53,7 @@ impl GameRunner {
         Self {
             ctx: context,
             canvas_size: Size::new(900, 600),
-            game: Game::new(Size::new(100, 30))
+            game: Box::new(Game::new(Size::new(100, 30)))
         }
     }
 
@@ -66,11 +66,17 @@ impl GameRunner {
         self.draw();        
     }
 
+    pub fn handle_key(&mut self, key: char) {
+        self.game.process_key(key, false);
+    } 
+
     fn draw(&mut self) {
         self.ctx.clear_rect(0., 0., self.canvas_size.width as f64, self.canvas_size.height as f64);
         self.ctx.set_font("14px monospace");
-        let font_height = 14.;
-        let font_width = self.ctx.measure_text("W").unwrap().width();
+
+        let font_metrics = self.ctx.measure_text("W").unwrap();
+        let font_width = font_metrics.width();
+        let font_height = font_metrics.font_bounding_box_ascent();
 
         for y in 0..self.game.size.height as usize {
             // console::log_1(&JsValue::from(format!("{}", y)));

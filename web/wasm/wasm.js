@@ -225,6 +225,12 @@ export class GameRunner {
     update() {
         wasm.gamerunner_update(this.ptr);
     }
+    /**
+    * @param {string} key
+    */
+    handle_key(key) {
+        wasm.gamerunner_handle_key(this.ptr, key.codePointAt(0));
+    }
 }
 
 async function load(module, imports) {
@@ -310,6 +316,10 @@ function getImports() {
     }, arguments) };
     imports.wbg.__wbg_width_41490e574968bc05 = function(arg0) {
         const ret = getObject(arg0).width;
+        return ret;
+    };
+    imports.wbg.__wbg_fontBoundingBoxAscent_723dfeb2d960a75a = function(arg0) {
+        const ret = getObject(arg0).fontBoundingBoxAscent;
         return ret;
     };
     imports.wbg.__wbg_newnoargs_fc5356289219b93b = function(arg0, arg1) {

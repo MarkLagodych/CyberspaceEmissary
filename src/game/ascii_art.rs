@@ -29,6 +29,7 @@ r"
 ";
 
 
+#[cfg(feature = "terminal_backend")]
 pub const TUTORIAL: STR = "\
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 | Quit: Ctrl + Q                          |
@@ -37,6 +38,17 @@ pub const TUTORIAL: STR = "\
 * Crouch: DOWN ARROW or .                 *
 | Jump or Stop crouching: TOP ARROW or /  |
 * Cast a spell: any letters + ENTER       *
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+";
+
+#[cfg(feature = "wasm_backend")]
+pub const TUTORIAL: STR = "\
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+| Move left: LEFT ARROW or [              |
+* Move right: RIGHT ARROW or ]            *
+| Crouch: DOWN ARROW or .                 |
+* Jump or Stop crouching: TOP ARROW or /  *
+| Cast a spell: any letters + ENTER       |
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 ";
 
