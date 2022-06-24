@@ -44,6 +44,7 @@ pub struct Game {
     pub color_buffer: Vec<Vec<Color>>,
 
     view_position: Position,
+    is_recording_spell: bool,
 
     console: SpellConsole,
     console_id: EntityID,
@@ -69,6 +70,7 @@ impl Game {
             cursor_position: Position::origin(),
             
             size: size,
+            is_recording_spell: false,
 
             symbol_buffer: vec![],
             color_buffer: vec![],
@@ -118,6 +120,10 @@ impl Game {
         self.color_buffer = vec![vec![Color::white(); size.width as usize]; size.height as usize];
     }
 
+    pub fn is_expecting_text(&self) -> bool {
+        self.is_recording_spell
+    }
+
     pub fn process_key(&mut self, key: char, ctrl: bool) {       
         if ctrl {
             match key {
@@ -130,22 +136,37 @@ impl Game {
             }
         }
 
+        if key == ' ' {
+            self.is_recording_spell = true;
+        }
+
+        if self.is_recording_spell {
+            match key {
+                KEY_ENTER => {
+                    self.is_recording_spell = false;
+                    self.console.finish_spell();
+                }
+
+                KEY_BACKSPACE => {
+                    self.console.backspace();
+                }
+
+                'a'..='z' | 'A'..='Z' => {
+                    self.console.add_char(key);
+                }
+
+                _ => {}
+            }
+
+            self.manage_console();
+
+            return;
+        }
+
         match key {
-            KEY_ENTER => {
-                self.console.finish_spell();
-            }
+            'a' | 'd' => {
 
-            KEY_BACKSPACE => {
-                self.console.backspace();
-            }
-
-            '1'..='9' => {
-
-            }
-
-            '[' | ']' => {
-
-                let delta = if key == ']' {1} else {-1};
+                let delta = if key == 'd' {1} else {-1};
 
                 let hero_pos_abs = self.entities[self.hero_id].get_figure().position;
                 let hero_pos = hero_pos_abs.relative_to(self.view_position);
@@ -163,22 +184,22 @@ impl Game {
                 }
             }
 
-            '/' => {
+            'w' => {
                 Hero::jump_entity(&mut self.entities[self.hero_id]);
             }
 
-            '.' => {
+            's' => {
                 Hero::crouch_entity(&mut self.entities[self.hero_id]);
             }
 
-            'a'..='z' | 'A'..='Z' | ' ' => {
-                self.console.add_char(key);
+            'e' => {
+                let mut fig = self.entities[self.sword_id].get_figure_mut();
+                fig.visible = true;
             }
 
             _ => {}
         }
 
-        self.manage_console();
 
     }
 
@@ -249,7 +270,7 @@ impl Game {
 
     pub fn render(&mut self) {
 
-        self.tick();
+        self.update_before_render();
 
         for row in &mut self.symbol_buffer {
             for symbol in row {
@@ -259,6 +280,10 @@ impl Game {
 
         for entity_id in &self.rooms[self.current_room].entities {
             let figure = &self.entities[*entity_id].get_figure();
+
+            if !figure.visible {
+                continue;
+            }
             
             for sprite in &figure.sprites {
 
@@ -298,11 +323,25 @@ impl Game {
             }
         }
 
+        self.update_after_render();
+
     }
 
-    fn tick(&mut self) {
+    fn update_before_render(&mut self) {
         for ent in &mut self.entities {
             ent.animate();
         }
+
+        let sword_pos =
+            self.entities[self.hero_id].get_figure().position
+            + Position::new(3, 0);
+        let mut fig = self.entities[self.sword_id].get_figure_mut();
+        fig.position = sword_pos;
+
+    }
+
+    fn update_after_render(&mut self) {
+        let mut fig = self.entities[self.sword_id].get_figure_mut();
+        fig.visible = false;
     }
 }

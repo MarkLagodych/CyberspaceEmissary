@@ -231,6 +231,13 @@ export class GameRunner {
     handle_key(key) {
         wasm.gamerunner_handle_key(this.ptr, key.codePointAt(0));
     }
+    /**
+    * @returns {boolean}
+    */
+    is_expecting_text() {
+        const ret = wasm.gamerunner_is_expecting_text(this.ptr);
+        return ret !== 0;
+    }
 }
 
 async function load(module, imports) {

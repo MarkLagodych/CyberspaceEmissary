@@ -53,7 +53,7 @@ impl SpellConsole {
 
 
 pub struct Hero {
-
+    pub health: u32,
 }
 
 pub const HERO_STATE_NORMAL: usize = 0;
@@ -129,12 +129,14 @@ impl Sword {
             AnimatableEntity::new(Position::new(0, WORLD_HEIGHT-1 - size.height - 2))
         );
 
+        ent.figure.visible = false;
+
         let common = Sprite {
             color: Color::yellow(),
             content: "".into(),
             offset: Position::origin(),
             size,
-            active: true
+            active: false
         };
 
         let mut sprite_ids = vec![
@@ -154,3 +156,5 @@ impl Sword {
         ent
     }
 }
+
+

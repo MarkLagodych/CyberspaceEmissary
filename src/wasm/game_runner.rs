@@ -70,6 +70,10 @@ impl GameRunner {
         self.game.process_key(key, false);
     } 
 
+    pub fn is_expecting_text(&self) -> bool {
+        self.game.is_expecting_text()
+    }
+
     fn draw(&mut self) {
         self.ctx.clear_rect(0., 0., self.canvas_size.width as f64, self.canvas_size.height as f64);
         self.ctx.set_font("14px monospace");

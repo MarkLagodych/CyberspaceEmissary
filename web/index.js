@@ -48,14 +48,16 @@ window.onload = ()=>{
 
 function update() {
     pressed_keys.forEach((key) => {
-        if (key == 'Space' || key.startsWith('Key') || key == 'Backspace')
-            pressed_keys.delete(key); // prevent from continuous handling of a single key
+        if (game_runner.is_expecting_text()) {
+            if (key == 'Space' || key.startsWith('Key') || key == 'Backspace')
+                pressed_keys.delete(key); // prevent from continuous handling of a single key
+        }
         
         switch (key) {
-            case 'ArrowRight': case 'BracketRight': game_runner.handle_key(']'); break;
-            case 'ArrowLeft':  case 'BracketLeft':  game_runner.handle_key('['); break;
-            case 'ArrowUp':    case 'Slash':        game_runner.handle_key('/'); break;
-            case 'ArrowDown':  case 'Period':       game_runner.handle_key('.'); break;
+            case 'ArrowRight':  game_runner.handle_key('d'); break;
+            case 'ArrowLeft':   game_runner.handle_key('a'); break;
+            case 'ArrowUp':     game_runner.handle_key('w'); break;
+            case 'ArrowDown':   game_runner.handle_key('s'); break;
             case 'Backspace': game_runner.handle_key('`'); break;
             case 'Enter': game_runner.handle_key('\n'); break;
             case 'Space': game_runner.handle_key(' '); break;

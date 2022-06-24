@@ -4,7 +4,7 @@
 
 Made for [Rusty Game Jam](https://itch.io/jam/rusty-jam-2) in June 2022.
 
-**Terminal game that also (mainly) runs in a browser.**
+This game is mainly supposed to work in browsers. Support for terminals was deprecated (but may be renewed if you ask kindly).
 
 ## Authors
 

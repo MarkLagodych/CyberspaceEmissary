@@ -38,6 +38,7 @@ impl StaticEntity {
                         active: true
                     }
                 ],
+                visible: true
             }
         }
     }    
@@ -93,6 +94,7 @@ impl AnimatableEntity {
             figure: Figure { 
                 sprites: vec![],
                 position,
+                visible: true,
             },
             current_state: 0,
             current_animation_point: 0,
@@ -209,5 +211,51 @@ impl Entity for AnimatableEntity {
         self.figure.sprites[
             self.animations[&self.current_state][self.current_animation_point].enabled_sprites[0]
         ].size
+    }
+}
+
+
+
+struct HostileStaticEntity {
+    pub figure: Figure,
+}
+
+impl HostileStaticEntity {
+    pub fn new(sprite_str: String, position: Position, color: Color) -> Self {
+        let size = Sprite::get_content_size(&sprite_str);
+
+        Self {
+            figure: Figure {
+                position,
+                sprites: vec![
+                    Sprite {
+                        color,
+                        content: sprite_str,
+                        offset: Position::origin(),
+                        size,
+                        active: true
+                    }
+                ],
+                visible: true
+            }
+        }
+    }
+}
+
+impl Entity for HostileStaticEntity {
+    fn get_figure(&self) -> &Figure {
+        &self.figure
+    }
+
+    fn get_figure_mut(&mut self) -> &mut Figure {
+        &mut self.figure
+    }
+
+    fn get_size(&self) -> Size {
+        self.figure.sprites[0].size
+    }
+
+    fn get_damage(&self) -> i32 {
+        3
     }
 }

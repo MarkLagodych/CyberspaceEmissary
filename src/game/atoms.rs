@@ -178,11 +178,12 @@ impl PartialEq for Size {
 pub struct Figure {
     pub sprites: Vec<Sprite>,
     pub position: Position,
+    pub visible: bool,
 }
 
 impl Figure {
     pub fn new() -> Self {
-        Self { sprites: vec![], position: Position::origin() }
+        Self { sprites: vec![], position: Position::origin(), visible: true }
     }
 }
 
@@ -194,6 +195,7 @@ pub trait Entity {
     fn set_state(&mut self, state_id: StateID) { }
     fn get_state(&mut self) -> StateID { 0 }
     fn get_size(&self) -> Size;
+    fn get_damage(&self) -> i32 { 0 }
 }
 
 

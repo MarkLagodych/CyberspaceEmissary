@@ -44,11 +44,9 @@ pub const TUTORIAL: STR = "\
 #[cfg(feature = "wasm_backend")]
 pub const TUTORIAL: STR = "\
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-| Move left: LEFT ARROW or [              |
-* Move right: RIGHT ARROW or ]            *
-| Crouch: DOWN ARROW or .                 |
-* Jump or Stop crouching: TOP ARROW or /  *
-| Cast a spell: any letters + ENTER       |
+| Movement: WASD or ARROWS                |
+* Fight with your sword: E                *
+| Cast a spell: SPACE + letters + ENTER   |
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 ";
 
