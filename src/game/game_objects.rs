@@ -53,26 +53,28 @@ impl SpellConsole {
 
 
 pub struct HeroController {
-    pub jump_counter: f64,
     pub direction_right: bool,
     pub health: u32,
+    pub jump_potential: i32,
 }
 
 pub const HERO_STATE_NORMAL: usize = 0;
 pub const HERO_STATE_CROUCHING: usize = 1;
 pub const HERO_STATE_JUMPING_RIGHT: usize = 2;
 pub const HERO_STATE_JUMPING_LEFT: usize = 3;
+pub const HERO_STATE_FALLING: usize = 4;
 
 impl HeroController {
     pub fn new() -> Self {
-        Self { jump_counter: 0.0, health: 10, direction_right: true }
+        Self { health: 10, direction_right: true, jump_potential: 0 }
     }
 
     pub fn new_entity(&self) -> Box<dyn Entity> {
         let hero_size = Sprite::get_content_size(HERO);
+        let hero_crouching2_size = Sprite::get_content_size(HERO_CROUCHING_2);
         
         let mut ent = Box::new(
-            AnimatableEntity::new(Position::new(0, WORLD_HEIGHT-1 - hero_size.height))
+            AnimatableEntity::new(Position::origin())
         );
 
         let staying = ent.add_sprite(Sprite {
@@ -94,8 +96,8 @@ impl HeroController {
         let crouching_2 = ent.add_sprite(Sprite {
             color: Color::magenta(),
             content: HERO_CROUCHING_2.into(),
-            offset: Position::origin(), 
-            size: hero_size,
+            offset: Position::new(0, 1), 
+            size: hero_crouching2_size,
             active: true
         });
 
@@ -115,6 +117,14 @@ impl HeroController {
             active: true
         });
 
+        let falling = ent.add_sprite(Sprite {
+            color: Color::magenta(),
+            content: HERO_FALL.into(),
+            offset: Position::origin(), 
+            size: hero_size,
+            active: true
+        });
+
         ent.add_animation_point(HERO_STATE_NORMAL, vec![staying], ANIMATE_FOREVER);
         
         ent.add_animation_point(HERO_STATE_CROUCHING, vec![crouching_1], 4);
@@ -122,6 +132,8 @@ impl HeroController {
 
         ent.add_animation_point(HERO_STATE_JUMPING_LEFT, vec![jumping_left], ANIMATE_FOREVER);
         ent.add_animation_point(HERO_STATE_JUMPING_RIGHT, vec![jumping_right], ANIMATE_FOREVER);
+
+        ent.add_animation_point(HERO_STATE_FALLING, vec![falling], ANIMATE_FOREVER);
 
         ent.set_state(HERO_STATE_NORMAL);
         
@@ -140,10 +152,17 @@ impl HeroController {
         }
     }
 
-    pub fn jump_entity(&self, _self: &mut Box<dyn Entity>) {
+    pub fn jump_entity(&mut self, _self: &mut Box<dyn Entity>) {
         if _self.get_state() == HERO_STATE_CROUCHING {
             _self.set_state(HERO_STATE_NORMAL);
         } else {
+            if self.jump_potential == 0
+            && _self.get_state() != HERO_STATE_FALLING
+            && _self.get_state() != HERO_STATE_JUMPING_LEFT
+            && _self.get_state() != HERO_STATE_JUMPING_RIGHT {
+                self.jump_potential = HERO_JUMPING_HEIGHT;
+            }
+
             if self.direction_right {
                 _self.set_state(HERO_STATE_JUMPING_RIGHT);
             } else {

@@ -52,7 +52,7 @@ pub struct Game {
 
     debug_id: EntityID,
 
-    tutorial_id: EntityID,
+    sign_ids: Vec<EntityID>,
     floor_id: EntityID,
 
     hero_id: EntityID,
@@ -86,7 +86,7 @@ impl Game {
             console: SpellConsole::new(),
             console_id: 0,
 
-            tutorial_id: 0,
+            sign_ids: vec![],
             floor_id: 0,
 
             hero_id: 0,
@@ -241,13 +241,18 @@ impl Game {
             "".into(), Color::white(), Position::origin()
         )));
 
-        self.tutorial_id = self.new_entity(
-            Box::new(StaticEntity::new(
+        self.sign_ids = vec![
+            self.new_entity(Box::new(StaticEntity::new(
                 TUTORIAL.into(),
-                Color::new(200, 70, 0),
+                Color::cyan(),
                 Position::new(10, 3)
-            ))
-        );
+            ))),
+            self.new_entity(Box::new(StaticEntity::new(
+                GO_RIGHT_SIGN.into(),
+                Color::cyan(),
+                Position::new(60, 15)
+            ))),
+        ];
 
         self.floor_id = self.new_entity(Box::new(
             StaticEntity::new(
@@ -264,7 +269,22 @@ impl Game {
         self.spike_ids = vec![
             self.new_entity(Box::new(HostileStaticEntity::new(
                 SPIKE_UP.into(), Position::new(20, Y_BOTTOM), Color::red()
-            )))
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_UP.into(), Position::new(21, Y_BOTTOM), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(40, Y_BOTTOM-2), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(40, Y_BOTTOM-4), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(40, Y_BOTTOM-6), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(40, Y_BOTTOM-8), Color::red()
+            ))),
         ];
 
     }
@@ -273,12 +293,18 @@ impl Game {
         let start_room_id = self.new_room(Size::new(WORLD_MIN_WIDTH*2, WORLD_HEIGHT));
 
         self.rooms[start_room_id].entities.push(self.debug_id);
-        self.rooms[start_room_id].entities.push(self.tutorial_id);
         self.rooms[start_room_id].entities.push(self.console_id);
         self.rooms[start_room_id].entities.push(self.floor_id);
         self.rooms[start_room_id].entities.push(self.hero_id);
         self.rooms[start_room_id].entities.push(self.sword_id);
-        self.rooms[start_room_id].entities.push(self.spike_ids[0]);
+
+        for id in &self.sign_ids {
+            self.rooms[start_room_id].entities.push(*id);
+        }
+
+        for id in &self.spike_ids {
+            self.rooms[start_room_id].entities.push(*id);
+        }
 
         self.current_room = start_room_id;
     }
@@ -355,6 +381,30 @@ impl Game {
             ent.animate();
         }
 
+        if self.hero_controller.jump_potential > 0 {
+            self.entities[self.hero_id].get_figure_mut().position.y -= 1;
+
+            self.hero_controller.jump_potential -= 1;
+
+            if self.collides(self.hero_id) {
+                self.hero_controller.jump_potential = 0;
+                self.entities[self.hero_id].get_figure_mut().position.y += 1;
+                self.entities[self.hero_id].set_state(HERO_STATE_NORMAL);
+            }
+        } else {
+            self.entities[self.hero_id].get_figure_mut().position.y += 1;
+
+            if self.collides(self.hero_id) {
+                self.entities[self.hero_id].get_figure_mut().position.y -= 1;
+
+                if self.entities[self.hero_id].get_state() != HERO_STATE_CROUCHING {
+                    self.entities[self.hero_id].set_state(HERO_STATE_NORMAL);
+                }
+            } else {
+                self.entities[self.hero_id].set_state(HERO_STATE_FALLING);
+            }
+        }
+
         let sword_pos =
             self.entities[self.hero_id].get_figure().position
             + Position::new(3, 0);
@@ -372,6 +422,20 @@ impl Game {
         for ent_id in &self.rooms[self.current_room].entities {
             if *ent_id != entity_id {
                 if !self.entities[*ent_id].get_figure().visible { continue; }
+                if collides(self.entities[entity_id].get_figure(), self.entities[*ent_id].get_figure()) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    fn collides_with_damage(&self, entity_id: EntityID) -> bool {
+        for ent_id in &self.rooms[self.current_room].entities {
+            if *ent_id != entity_id {
+                if !self.entities[*ent_id].get_figure().visible { continue; }
+                if !self.entities[*ent_id].get_damage() == 0 { continue; }
                 if collides(self.entities[entity_id].get_figure(), self.entities[*ent_id].get_figure()) {
                     return true;
                 }

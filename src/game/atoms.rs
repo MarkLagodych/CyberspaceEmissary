@@ -84,7 +84,7 @@ impl Sprite {
     
         for line in content.split('\n') {
             size.height += 1;
-            size.width = size.width.max(line.len() as i32);
+            size.width = size.width.max(line.chars().count() as i32);
         }
     
         size
@@ -235,27 +235,29 @@ fn is_point_in_rect(point: &Position, rect_pos: &Position, rect_size: &Size) -> 
 
 pub fn collides(fig1: &Figure, fig2: &Figure) -> bool {
     for sprite1 in &fig1.sprites {
+        if !sprite1.active { continue; }
+
         let sprite1_pos = fig1.position + sprite1.offset;
-        
+        let x1 = sprite1_pos.x;
+        let y1 = sprite1_pos.y;
+        let w1 = sprite1.size.width;
+        let h1 = sprite1.size.height;
+
         for sprite2 in &fig2.sprites {
+            if !sprite2.active { continue; }
+
             let sprite2_pos = fig2.position + sprite2.offset;
             let x2 = sprite2_pos.x;
             let y2 = sprite2_pos.y;
             let w2 = sprite2.size.width;
             let h2 = sprite2.size.height;
 
-            let points = vec![
-                Position::new(x2,      y2),
-                Position::new(x2,      y2 + h2),
-                Position::new(x2 + w2, y2),
-                Position::new(x2 + w2, y2 + h2),
-            ];
-
-            for p in &points {
-                if is_point_in_rect(p, &sprite1_pos, &sprite1.size) {
-                    return true;
-                }
-            }
+            if x1    < x2+w2
+            && x1+w1 > x2
+            && y1    < y2+h2
+            && y1+h1 > y2
+            { return true; }
+            
         }
     }
 
