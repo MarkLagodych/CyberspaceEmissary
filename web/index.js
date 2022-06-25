@@ -41,6 +41,8 @@ window.onload = ()=>{
             pressed_keys.delete(key_event.code);
         }
     };
+
+    new Audio('./web/assets/music.mp3').play();
 };
 
 function update() {
