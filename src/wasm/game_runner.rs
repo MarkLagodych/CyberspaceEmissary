@@ -53,7 +53,7 @@ impl GameRunner {
         Self {
             ctx: context,
             canvas_size: Size::new(900, 600),
-            game: Box::new(Game::new(Size::new(100, 30)))
+            game: Box::new(Game::new(Size::new(100, 35)))
         }
     }
 

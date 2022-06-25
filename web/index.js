@@ -24,8 +24,7 @@ async function load_wasm() {
     await init_wasm();
     game_runner = new GameRunner();
 }
-load_wasm();
-
+await load_wasm();
 
 var pressed_keys = new Set;
 window.my_interval_object = null;

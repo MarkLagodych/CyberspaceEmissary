@@ -63,6 +63,9 @@ pub struct Game {
     spike_ids: Vec<EntityID>,
 
     hostile_ids: Vec<EntityID>,
+
+    platform_id: EntityID,
+    boss_id: EntityID,
 }
 
 impl Game {
@@ -97,7 +100,11 @@ impl Game {
 
             spike_ids: vec![],
 
-            hostile_ids: vec![]
+            hostile_ids: vec![],
+
+            platform_id: 0,
+
+            boss_id: 0,
         };
 
         new_self.construct_entities();
@@ -119,7 +126,7 @@ impl Game {
     fn manage_console(&mut self) {
         let fig = self.entities[self.console_id].get_figure_mut();
         fig.sprites[0].content = self.console.get_spell();
-        fig.position = Position::new(self.view_position.x, self.size.height-1);
+        fig.position = Position::new(self.view_position.x, Y_BOTTOM+3);
         
         self.cursor_position =
             fig.position.relative_to(self.view_position)
@@ -155,7 +162,11 @@ impl Game {
             match key {
                 KEY_ENTER => {
                     self.is_recording_spell = false;
-                    self.console.finish_spell();
+                    let spell = self.console.finish_spell();
+
+                    if spell == "android" {
+                        self.entities[self.boss_id].get_figure_mut().visible = false;
+                    }
                 }
 
                 KEY_BACKSPACE => {
@@ -244,7 +255,7 @@ impl Game {
     fn construct_entities(&mut self) {
 
         self.debug_id = self.new_entity(Box::new(StaticEntity::new(
-            DEBUG.into(), Color::cyan(), Position::new(WORLD_MIN_WIDTH*2, Y_BOTTOM)
+            DEBUG.into(), Color::cyan(), Position::new(WORLD_MIN_WIDTH*3+1, Y_BOTTOM)
         )));
 
         self.console_id = self.new_entity(Box::new(StaticEntity::new(
@@ -261,6 +272,16 @@ impl Game {
                 GO_RIGHT_SIGN.into(),
                 Color::cyan(),
                 Position::new(78, 15)
+            ))),
+            self.new_entity(Box::new(StaticEntity::new(
+                BOSS_SIGN.into(),
+                Color::cyan(),
+                Position::new(140, 3)
+            ))),
+            self.new_entity(Box::new(StaticEntity::new(
+                END_SIGN.into(),
+                Color::cyan(),
+                Position::new(215, 15)
             ))),
         ];
 
@@ -301,24 +322,45 @@ impl Game {
             self.new_entity(Box::new(HostileStaticEntity::new(
                 SPIKE_UP.into(), Position::new(72, Y_BOTTOM-7), Color::red()
             ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(105, Y_BOTTOM-4), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(105, Y_BOTTOM-2), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_DOWN.into(), Position::new(105, Y_BOTTOM), Color::red()
+            ))),
         ];
 
         self.hostile_ids = vec![
             self.new_entity(Box::new(HostileStaticDefeatableEntity::new(
                 ENEMY.into(), Position::new(70, Y_BOTTOM-2), Color::red()
             ))),
+            self.new_entity(Box::new(HostileStaticDefeatableEntity::new(
+                ENEMY.into(), Position::new(120, Y_BOTTOM-7), Color::red()
+            ))),
         ];
+
+        self.platform_id = self.new_entity(Box::new(StaticEntity::new(
+            PLATFORM.into(), Color::new(100, 100, 100), Position::new(100, Y_BOTTOM-5)
+        )));
+
+        self.boss_id = self.new_entity(Box::new(HostileStaticEntity::new(
+            BOSS.into(), Position::new(170, 13), Color::blue()
+        )));
 
     }
 
     fn construct_rooms(&mut self) {
-        let start_room_id = self.new_room(Size::new(WORLD_MIN_WIDTH*2, WORLD_HEIGHT));
+        let start_room_id = self.new_room(Size::new(WORLD_MIN_WIDTH*3, WORLD_HEIGHT));
 
         self.rooms[start_room_id].entities.push(self.debug_id);
         self.rooms[start_room_id].entities.push(self.console_id);
         self.rooms[start_room_id].entities.push(self.floor_id);
         self.rooms[start_room_id].entities.push(self.hero_id);
         self.rooms[start_room_id].entities.push(self.sword_id);
+        self.rooms[start_room_id].entities.push(self.platform_id);
 
         for id in &self.sign_ids {
             self.rooms[start_room_id].entities.push(*id);
@@ -331,6 +373,8 @@ impl Game {
         for id in &self.hostile_ids {
             self.rooms[start_room_id].entities.push(*id);
         }
+
+        self.rooms[start_room_id].entities.push(self.boss_id);
 
         self.current_room = start_room_id;
     }
@@ -425,7 +469,7 @@ impl Game {
             }
 
         } else {
-            
+
             self.entities[self.hero_id].get_figure_mut().position.y += 1;
 
             if self.collides_with_damage(self.hero_id) {
