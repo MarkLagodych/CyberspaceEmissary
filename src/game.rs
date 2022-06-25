@@ -423,7 +423,9 @@ impl Game {
                 self.entities[self.hero_id].get_figure_mut().position.y += 1;
                 self.entities[self.hero_id].set_state(HERO_STATE_NORMAL);
             }
+
         } else {
+            
             self.entities[self.hero_id].get_figure_mut().position.y += 1;
 
             if self.collides_with_damage(self.hero_id) {
