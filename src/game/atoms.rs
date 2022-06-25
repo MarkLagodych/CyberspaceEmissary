@@ -196,6 +196,7 @@ pub trait Entity {
     fn get_state(&mut self) -> StateID { 0 }
     fn get_size(&self) -> Size;
     fn get_damage(&self) -> i32 { 0 }
+    fn is_defeatable(&self) -> bool { false }
 }
 
 
@@ -263,3 +264,34 @@ pub fn collides(fig1: &Figure, fig2: &Figure) -> bool {
 
     return false;
 }
+
+// pub fn touches(fig1: &Figure, fig2: &Figure) -> bool {
+//     for sprite1 in &fig1.sprites {
+//         if !sprite1.active { continue; }
+
+//         let sprite1_pos = fig1.position + sprite1.offset;
+//         let x1 = sprite1_pos.x-1;
+//         let y1 = sprite1_pos.y-1;
+//         let w1 = sprite1.size.width+2;
+//         let h1 = sprite1.size.height+2;
+
+//         for sprite2 in &fig2.sprites {
+//             if !sprite2.active { continue; }
+
+//             let sprite2_pos = fig2.position + sprite2.offset;
+//             let x2 = sprite2_pos.x;
+//             let y2 = sprite2_pos.y;
+//             let w2 = sprite2.size.width;
+//             let h2 = sprite2.size.height;
+
+//             if x1    < x2+w2
+//             && x1+w1 > x2
+//             && y1    < y2+h2
+//             && y1+h1 > y2
+//             { return true; }
+            
+//         }
+//     }
+
+//     return false;
+// }

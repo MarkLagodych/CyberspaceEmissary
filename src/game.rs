@@ -61,6 +61,8 @@ pub struct Game {
     sword_id: EntityID,
 
     spike_ids: Vec<EntityID>,
+
+    hostile_ids: Vec<EntityID>,
 }
 
 impl Game {
@@ -93,7 +95,9 @@ impl Game {
             hero_controller: HeroController::new(),
             sword_id: 0,
 
-            spike_ids: vec![]
+            spike_ids: vec![],
+
+            hostile_ids: vec![]
         };
 
         new_self.construct_entities();
@@ -186,6 +190,12 @@ impl Game {
                     self.entities[self.hero_id].get_figure_mut().position.x += delta;
                     self.entities[self.sword_id].get_figure_mut().position.x += delta;
                     
+                    if self.collides_with_damage(self.hero_id) {
+                        self.entities[self.hero_id].get_figure_mut().position = Position::origin();
+                        self.view_position = Position::origin();
+                        self.hero_controller.jump_potential = 0;
+                        return;
+                    }
 
                     if self.collides(self.hero_id) {
                         self.entities[self.hero_id].get_figure_mut().position.x -= delta;
@@ -250,7 +260,7 @@ impl Game {
             self.new_entity(Box::new(StaticEntity::new(
                 GO_RIGHT_SIGN.into(),
                 Color::cyan(),
-                Position::new(60, 15)
+                Position::new(78, 15)
             ))),
         ];
 
@@ -285,6 +295,18 @@ impl Game {
             self.new_entity(Box::new(HostileStaticEntity::new(
                 SPIKE_DOWN.into(), Position::new(40, Y_BOTTOM-8), Color::red()
             ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_UP.into(), Position::new(72, Y_BOTTOM-5), Color::red()
+            ))),
+            self.new_entity(Box::new(HostileStaticEntity::new(
+                SPIKE_UP.into(), Position::new(72, Y_BOTTOM-7), Color::red()
+            ))),
+        ];
+
+        self.hostile_ids = vec![
+            self.new_entity(Box::new(HostileStaticDefeatableEntity::new(
+                ENEMY.into(), Position::new(70, Y_BOTTOM-2), Color::red()
+            ))),
         ];
 
     }
@@ -303,6 +325,10 @@ impl Game {
         }
 
         for id in &self.spike_ids {
+            self.rooms[start_room_id].entities.push(*id);
+        }
+
+        for id in &self.hostile_ids {
             self.rooms[start_room_id].entities.push(*id);
         }
 
@@ -386,7 +412,13 @@ impl Game {
 
             self.hero_controller.jump_potential -= 1;
 
-            if self.collides(self.hero_id) {
+            if self.collides_with_damage(self.hero_id) {
+                self.entities[self.hero_id].get_figure_mut().position = Position::origin();
+                self.hero_controller.jump_potential = 0;
+                self.view_position = Position::origin();
+            }
+
+            else if self.collides(self.hero_id) {
                 self.hero_controller.jump_potential = 0;
                 self.entities[self.hero_id].get_figure_mut().position.y += 1;
                 self.entities[self.hero_id].set_state(HERO_STATE_NORMAL);
@@ -394,7 +426,12 @@ impl Game {
         } else {
             self.entities[self.hero_id].get_figure_mut().position.y += 1;
 
-            if self.collides(self.hero_id) {
+            if self.collides_with_damage(self.hero_id) {
+                self.entities[self.hero_id].get_figure_mut().position = Position::origin();
+                self.hero_controller.jump_potential = 0;
+                self.view_position = Position::origin();
+            }
+            else if self.collides(self.hero_id) {
                 self.entities[self.hero_id].get_figure_mut().position.y -= 1;
 
                 if self.entities[self.hero_id].get_state() != HERO_STATE_CROUCHING {
@@ -410,6 +447,8 @@ impl Game {
             + Position::new(3, 0);
         let mut fig = self.entities[self.sword_id].get_figure_mut();
         fig.position = sword_pos;
+
+        self.defeat_with_sword();
 
     }
 
@@ -435,7 +474,7 @@ impl Game {
         for ent_id in &self.rooms[self.current_room].entities {
             if *ent_id != entity_id {
                 if !self.entities[*ent_id].get_figure().visible { continue; }
-                if !self.entities[*ent_id].get_damage() == 0 { continue; }
+                if self.entities[*ent_id].get_damage() == 0 { continue; }
                 if collides(self.entities[entity_id].get_figure(), self.entities[*ent_id].get_figure()) {
                     return true;
                 }
@@ -443,6 +482,21 @@ impl Game {
         }
 
         false
+    }
+
+    fn defeat_with_sword(&mut self) {
+        if !self.entities[self.sword_id].get_figure().visible {return;}
+
+        for ent_id in &self.rooms[self.current_room].entities {
+            if *ent_id != self.sword_id && *ent_id != self.hero_id {
+                if !self.entities[*ent_id].get_figure().visible { continue; }
+                if !self.entities[*ent_id].is_defeatable() { continue; }
+        
+                if collides(self.entities[self.sword_id].get_figure(), self.entities[*ent_id].get_figure()) {
+                    self.entities[*ent_id].get_figure_mut().visible = false;
+                }
+            }
+        }
     }
 
 }
